@@ -136,6 +136,11 @@ class VoiceInputMethodService : InputMethodService() {
             requestHideSelf(0)
         }
 
+        view.findViewById<View>(R.id.btn_space)?.setOnClickListener {
+            VibrationHelper.vibrateKey(this, 20L)
+            currentInputConnection?.commitText(" ", 1)
+        }
+
         view.findViewById<ImageButton>(R.id.btn_backspace)?.let { btn ->
             progressiveBackspace.bind(btn)
         }
