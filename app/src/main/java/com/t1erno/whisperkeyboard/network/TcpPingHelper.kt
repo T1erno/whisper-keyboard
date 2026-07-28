@@ -18,7 +18,7 @@ object TcpPingHelper {
     }
 
     /**
-     * Performs a network health check to rawUrl.
+     * Performs a network health check to /health relative to rawUrl.
      * Verifies DNS resolution, TCP connection, SSL/TLS certificates, and SNI hostname validity.
      * Returns Result<Long> with RTT in milliseconds on success.
      */
@@ -31,9 +31,13 @@ object TcpPingHelper {
             if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
                 cleanUrl = "https://$cleanUrl"
             }
+            if (!cleanUrl.endsWith("/")) {
+                cleanUrl = "$cleanUrl/"
+            }
+            val healthUrl = "${cleanUrl}health"
 
             val request = Request.Builder()
-                .url(cleanUrl)
+                .url(healthUrl)
                 .head()
                 .build()
 
