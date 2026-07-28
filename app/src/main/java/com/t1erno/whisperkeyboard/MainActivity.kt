@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var switchEngineMode: SwitchMaterial
     private lateinit var tvEngineModeDesc: TextView
-    private lateinit var layoutEdgeSettings: LinearLayout
 
     private lateinit var rgModels: RadioGroup
     private lateinit var rbModelLargeV3: RadioButton
@@ -88,7 +87,6 @@ class MainActivity : AppCompatActivity() {
 
         switchEngineMode = findViewById(R.id.switch_engine_mode)
         tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
-        layoutEdgeSettings = findViewById(R.id.layout_edge_settings)
 
         rgModels = findViewById(R.id.rg_models)
         rbModelLargeV3 = findViewById(R.id.rb_model_large_v3)
@@ -194,13 +192,11 @@ class MainActivity : AppCompatActivity() {
         if (isEdge) {
             tvEngineModeDesc.text = "Edge / On-Device (Offline whisper.cpp NDK)"
             tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-            layoutEdgeSettings.visibility = View.VISIBLE
-            updateModelStatusUI()
         } else {
             tvEngineModeDesc.text = "Remote Server (FastAPI / OkHttp)"
             tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-            layoutEdgeSettings.visibility = View.GONE
         }
+        updateModelStatusUI()
     }
 
     private fun setupModelSelectionUI() {
@@ -240,27 +236,36 @@ class MainActivity : AppCompatActivity() {
         val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
         val isDownloading = ModelManager.isModelDownloading(selectedFileName)
         val progress = ModelManager.getDownloadProgress(selectedFileName)
+        val currentEngineMode = PreferencesManager.getEngineMode(this)
 
-        if (isDownloaded) {
-            tvModelStatus.text = "✓ Model ready: ${modelInfo.name}"
+        if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
+            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')"
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
             pbModelDownload.visibility = View.GONE
-        } else if (isDownloading) {
-            tvModelStatus.text = "Downloading ${modelInfo.name} (Parallel 4-Stream)... ${progress ?: 0}%"
-            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
-            btnDownloadModel.visibility = View.VISIBLE
-            btnDownloadModel.isEnabled = false
-            btnDownloadModel.text = "Downloading..."
-            pbModelDownload.visibility = View.VISIBLE
-            pbModelDownload.progress = progress ?: 0
         } else {
-            tvModelStatus.text = "Model missing: ${modelInfo.name}. Tap download below."
-            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnDownloadModel.text = "Download ${modelInfo.name} (Parallel 4-Stream)"
-            btnDownloadModel.visibility = View.VISIBLE
-            btnDownloadModel.isEnabled = true
-            pbModelDownload.visibility = View.GONE
+            // Edge / On-Device Mode
+            if (isDownloaded) {
+                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}"
+                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+                btnDownloadModel.visibility = View.GONE
+                pbModelDownload.visibility = View.GONE
+            } else if (isDownloading) {
+                tvModelStatus.text = "Downloading ${modelInfo.name} (Parallel 4-Stream)... ${progress ?: 0}%"
+                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+                btnDownloadModel.visibility = View.VISIBLE
+                btnDownloadModel.isEnabled = false
+                btnDownloadModel.text = "Downloading..."
+                pbModelDownload.visibility = View.VISIBLE
+                pbModelDownload.progress = progress ?: 0
+            } else {
+                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
+                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                btnDownloadModel.text = "Download ${modelInfo.name} (Parallel 4-Stream)"
+                btnDownloadModel.visibility = View.VISIBLE
+                btnDownloadModel.isEnabled = true
+                pbModelDownload.visibility = View.GONE
+            }
         }
     }
 

@@ -31,11 +31,66 @@
             android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
-        <!-- Engine Mode Selection Card -->
+        <!-- Engine Execution Mode Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            app:cardBackgroundColor="@color/card_bg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_toStartOf="@id/switch_engine_mode"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Engine Execution Mode"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/tv_engine_mode_desc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Remote Server (OkHttp)"
+                        android:textColor="@color/accent_purple"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_engine_mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="false"
+                    android:textOff=""
+                    android:textOn=""
+                    app:useMaterialThemeColors="true" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Active Speech Model Selection Card (Always Visible) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/card_bg"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
@@ -47,155 +102,105 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Speech-to-Text Model Selection"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp" />
 
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:layout_toStartOf="@id/switch_engine_mode"
-                        android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Used for both Remote Server requests &amp; Offline On-Device dictation"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="Engine Execution Mode"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp" />
-
-                        <TextView
-                            android:id="@+id/tv_engine_mode_desc"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:fontFamily="sans-serif"
-                            android:text="Remote Server (OkHttp)"
-                            android:textColor="@color/accent_purple"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switch_engine_mode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:checked="false"
-                        android:textOff=""
-                        android:textOn=""
-                        app:useMaterialThemeColors="true" />
-                </RelativeLayout>
-
-                <!-- On-Device Model Section (visible when Edge mode active) -->
-                <LinearLayout
-                    android:id="@+id/layout_edge_settings"
+                <RadioGroup
+                    android:id="@+id/rg_models"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="vertical"
-                    android:visibility="gone">
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
 
-                    <View
+                    <RadioButton
+                        android:id="@+id/rb_model_large_v3"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/key_bg" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="Offline GGML Model"
+                        android:text="Large v3 • Max Precision (1.08 GB)"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
-                    <RadioGroup
-                        android:id="@+id/rg_models"
+                    <RadioButton
+                        android:id="@+id/rb_model_large_turbo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical">
+                        android:text="Large v3 Turbo • Recommended (547 MB)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
 
-                        <RadioButton
-                            android:id="@+id/rb_model_large_v3"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Large v3 (q5_0) • 1.08 GB (Max Precision)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-
-                        <RadioButton
-                            android:id="@+id/rb_model_large_turbo"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Large v3 Turbo (q5_0) • 547 MB (Recommended)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-
-                        <RadioButton
-                            android:id="@+id/rb_model_medium"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Medium (q5_0) • 539 MB (High Accuracy)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-
-                        <RadioButton
-                            android:id="@+id/rb_model_small"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Small • 487 MB (Balanced Speed)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-
-                        <RadioButton
-                            android:id="@+id/rb_model_base"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Base • 147 MB (Lightweight)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-
-                        <RadioButton
-                            android:id="@+id/rb_model_tiny"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Tiny • 77 MB (Ultra Fast)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-                    </RadioGroup>
-
-                    <TextView
-                        android:id="@+id/tv_model_status"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:fontFamily="sans-serif"
-                        android:text="Model status: Checking..."
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-
-                    <ProgressBar
-                        android:id="@+id/pb_model_download"
-                        style="?android:attr/progressBarStyleHorizontal"
+                    <RadioButton
+                        android:id="@+id/rb_model_medium"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:visibility="gone" />
+                        android:text="Medium • High Accuracy (539 MB)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_download_model"
+                    <RadioButton
+                        android:id="@+id/rb_model_small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/accent_purple"
-                        android:text="Download Model"
-                        app:cornerRadius="12dp" />
-                </LinearLayout>
+                        android:text="Small • Balanced Speed (487 MB)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_model_base"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Base • Lightweight (147 MB)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_model_tiny"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Tiny • Ultra Fast (77 MB)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/tv_model_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Model status: Checking..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <ProgressBar
+                    android:id="@+id/pb_model_download"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_download_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:backgroundTint="@color/accent_purple"
+                    android:text="Download Model"
+                    app:cornerRadius="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
