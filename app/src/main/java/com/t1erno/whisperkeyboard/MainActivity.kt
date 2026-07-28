@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.provider.Settings
-import android.text.method.ScrollingMovementMethod
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -158,15 +157,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupTestInputScrolling() {
-        etTestInput.movementMethod = ScrollingMovementMethod()
+        // Keep default ArrowKeyMovementMethod to preserve full text selection, handles & context action bar
         etTestInput.setOnTouchListener { v, event ->
             if (v.hasFocus()) {
                 v.parent.requestDisallowInterceptTouchEvent(true)
-                when (event.action and MotionEvent.ACTION_MASK) {
-                    MotionEvent.ACTION_UP -> v.parent.requestDisallowInterceptTouchEvent(false)
+                if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
+                    v.parent.requestDisallowInterceptTouchEvent(false)
                 }
             }
-            false
+            false // Return false so EditText handles native touch, cursor positioning & text selection
         }
     }
 
