@@ -10,9 +10,9 @@ object TcpPingHelper {
 
     private val pingClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(3, TimeUnit.SECONDS)
-            .readTimeout(3, TimeUnit.SECONDS)
-            .writeTimeout(3, TimeUnit.SECONDS)
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .writeTimeout(4, TimeUnit.SECONDS)
             .followRedirects(true)
             .build()
     }
@@ -54,13 +54,14 @@ object TcpPingHelper {
     fun Throwable.toHumanReadablePingError(): String {
         val msg = message ?: ""
         return when {
-            this is java.net.UnknownHostException -> "Unknown host"
+            msg.contains("CLEARTEXT", ignoreCase = true) || msg.contains("cleartext", ignoreCase = true) -> "HTTP Cleartext blocked"
+            this is java.net.UnknownHostException -> "Unknown host (DNS failed)"
             this is java.net.SocketTimeoutException -> "Connection timed out"
-            this is java.net.ConnectException -> "Connection refused"
+            this is java.net.ConnectException -> "Connection refused (Port closed)"
             msg.contains("UNRECOGNIZED_NAME", ignoreCase = true) ||
             msg.contains("unrecognized name", ignoreCase = true) -> "Invalid domain (SSL unrecognized)"
             msg.contains("SSL", ignoreCase = true) || msg.contains("TLS", ignoreCase = true) -> "SSL / TLS Handshake Failed"
-            else -> "Connection failed"
+            else -> msg.ifEmpty { "Connection failed" }
         }
     }
 }
