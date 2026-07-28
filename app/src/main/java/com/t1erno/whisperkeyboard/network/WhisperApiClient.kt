@@ -2,6 +2,7 @@ package com.t1erno.whisperkeyboard.network
 
 import android.content.Context
 import com.t1erno.whisperkeyboard.PreferencesManager
+import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -39,16 +40,29 @@ object WhisperApiClient {
     }
 
     /**
-     * Uploads recorded audio file via multipart HTTP POST request.
+     * Uploads recorded audio file via multipart HTTP POST request to /transcribe?model=<serverKey>&language=<lang>.
      * Returns Result<String> containing transcribed text or exception.
      */
-    suspend fun uploadAudio(context: Context, audioFile: File): Result<String> {
+    suspend fun uploadAudio(
+        context: Context,
+        audioFile: File,
+        language: String = "es"
+    ): Result<String> {
         return try {
             val apiService = getApiService(context)
             val requestFile = audioFile.asRequestBody("audio/m4a".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", audioFile.name, requestFile)
 
-            val response = apiService.transcribeAudio(body)
+            val selectedFileName = PreferencesManager.getSelectedModelFileName(context)
+            val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+            val serverModelKey = modelInfo.serverKey
+
+            val response = apiService.transcribeAudio(
+                file = body,
+                model = serverModelKey,
+                language = language
+            )
+
             if (response.isSuccessful) {
                 val transcribedText = response.body()?.text
                 if (!transcribedText.isNullOrEmpty()) {

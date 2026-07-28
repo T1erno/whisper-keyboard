@@ -20,49 +20,56 @@ object ModelManager {
         val name: String,
         val fileName: String,
         val url: String,
-        val description: String
+        val description: String,
+        val serverKey: String
     )
 
     val MODEL_LARGE_V3 = ModelInfo(
         name = "Large v3 (q5_0)",
         fileName = "ggml-large-v3-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin",
-        description = "Maximum precision (1.08 GB)"
+        description = "Maximum precision (1.08 GB)",
+        serverKey = "large-v3"
     )
 
     val MODEL_LARGE_V3_TURBO = ModelInfo(
         name = "Large v3 Turbo (q5_0)",
         fileName = "ggml-large-v3-turbo-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
-        description = "Recommended • Fast & High Precision (547 MB)"
+        description = "Recommended • Fast & High Precision (547 MB)",
+        serverKey = "large-v3-turbo"
     )
 
     val MODEL_MEDIUM = ModelInfo(
         name = "Medium (q5_0)",
         fileName = "ggml-medium-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
-        description = "High accuracy (539 MB)"
+        description = "High accuracy (539 MB)",
+        serverKey = "medium"
     )
 
     val MODEL_SMALL = ModelInfo(
         name = "Small",
         fileName = "ggml-small.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
-        description = "Balanced speed & memory (487 MB)"
+        description = "Balanced speed & memory (487 MB)",
+        serverKey = "small"
     )
 
     val MODEL_BASE = ModelInfo(
         name = "Base",
         fileName = "ggml-base.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
-        description = "Lightweight (147 MB)"
+        description = "Lightweight (147 MB)",
+        serverKey = "base"
     )
 
     val MODEL_TINY = ModelInfo(
         name = "Tiny",
         fileName = "ggml-tiny.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
-        description = "Fastest, low memory (77 MB)"
+        description = "Fastest, low memory (77 MB)",
+        serverKey = "tiny"
     )
 
     val AVAILABLE_MODELS = listOf(
