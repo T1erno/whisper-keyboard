@@ -253,7 +253,7 @@ class MainActivity : AppCompatActivity() {
                 context = this@MainActivity,
                 modelInfo = modelInfo,
                 numThreads = 4
-            ) { percent ->
+            ) { _ ->
                 lifecycleScope.launch {
                     val currentSelected = PreferencesManager.getSelectedModelFileName(this@MainActivity)
                     if (currentSelected == modelInfo.fileName) {
@@ -305,7 +305,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun runTcpPing(url: String) {
-        val result = TcpPingHelper.ping(url, timeoutMs = 2500)
+        val result = TcpPingHelper.ping(url)
         result.fold(
             onSuccess = { rttMs ->
                 vStatusDot.setBackgroundResource(R.drawable.bg_status_dot_green)

@@ -22,7 +22,7 @@ object TcpPingHelper {
      * Verifies DNS resolution, TCP connection, SSL/TLS certificates, and SNI hostname validity.
      * Returns Result<Long> with RTT in milliseconds on success.
      */
-    suspend fun ping(rawUrl: String, timeoutMs: Int = 3000): Result<Long> = withContext(Dispatchers.IO) {
+    suspend fun ping(rawUrl: String): Result<Long> = withContext(Dispatchers.IO) {
         try {
             var cleanUrl = rawUrl.trim()
             if (cleanUrl.isEmpty()) {
