@@ -19,7 +19,7 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_initContext(
     if (!model_path) return 0;
 
     struct whisper_context_params cparams = whisper_context_default_params();
-    cparams.use_gpu = false;
+    cparams.use_gpu = true; // Enables Vulkan GPU / hardware acceleration
 
     struct whisper_context *ctx = whisper_init_from_file_with_params(model_path, cparams);
     env->ReleaseStringUTFChars(model_path_str, model_path);
@@ -29,7 +29,7 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_initContext(
         return 0;
     }
 
-    LOGI("Successfully initialized whisper context");
+    LOGI("Successfully initialized whisper context with GPU/Vulkan acceleration");
     return reinterpret_cast<jlong>(ctx);
 }
 

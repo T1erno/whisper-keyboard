@@ -18,8 +18,9 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags("-std=c++17 -O3")
+                cppFlags("-std=c++17 -O3 -flto -fno-finite-math-only")
                 arguments(
+                    "-DGGML_OPENMP=ON",
                     "-DWHISPER_BUILD_TESTS=OFF",
                     "-DWHISPER_BUILD_EXAMPLES=OFF",
                     "-DBUILD_SHARED_LIBS=OFF"

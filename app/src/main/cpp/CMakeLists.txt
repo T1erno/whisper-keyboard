@@ -4,12 +4,14 @@ project("whisper_native")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optimize for ARM64 NEON performance cores with ggml non-finite math safety
+# Optimize for ARM64 NEON FP16 + DotProduct hardware vectorization specifically on arm64-v8a
 if(ANDROID_ABI STREQUAL "arm64-v8a")
+    add_compile_options(-O3 -flto -fno-finite-math-only -march=armv8.2-a+fp16+dotprod)
+else()
     add_compile_options(-O3 -flto -fno-finite-math-only)
 endif()
 
-# Disable tests and examples for whisper.cpp
+set(GGML_OPENMP ON CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
