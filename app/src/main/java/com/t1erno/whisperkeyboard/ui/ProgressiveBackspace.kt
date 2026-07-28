@@ -2,6 +2,7 @@ package com.t1erno.whisperkeyboard.ui
 
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputConnection
@@ -13,7 +14,7 @@ class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConne
 
     private val deleteRunnable = object : Runnable {
         override fun run() {
-            inputConnectionProvider()?.deleteSurroundingText(1, 0)
+            executeBackspace()
 
             val elapsedMs = System.currentTimeMillis() - holdStartTime
             val nextDelayMs = when {
@@ -26,13 +27,25 @@ class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConne
         }
     }
 
+    fun executeBackspace() {
+        val ic = inputConnectionProvider() ?: return
+        val selectedText = ic.getSelectedText(0)
+        if (!selectedText.isNullOrEmpty()) {
+            ic.commitText("", 1)
+        } else {
+            val eventTime = System.currentTimeMillis()
+            ic.sendKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL, 0))
+            ic.sendKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL, 0))
+        }
+    }
+
     fun bind(backspaceButton: View) {
         backspaceButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     VibrationHelper.vibrateKey(backspaceButton.context, 18L)
                     holdStartTime = System.currentTimeMillis()
-                    inputConnectionProvider()?.deleteSurroundingText(1, 0)
+                    executeBackspace()
                     deleteHandler.removeCallbacks(deleteRunnable)
                     deleteHandler.postDelayed(deleteRunnable, PHASE1_INTERVAL_MS)
                     true
@@ -44,6 +57,13 @@ class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConne
                 else -> false
             }
         }
+    }
+
+    fun start() {
+        holdStartTime = System.currentTimeMillis()
+        executeBackspace()
+        deleteHandler.removeCallbacks(deleteRunnable)
+        deleteHandler.postDelayed(deleteRunnable, PHASE1_INTERVAL_MS)
     }
 
     fun stop() {
