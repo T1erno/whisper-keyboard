@@ -19,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.t1erno.whisperkeyboard.audio.AudioRecorderManager
+import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
 import com.t1erno.whisperkeyboard.ui.ProgressiveBackspace
@@ -239,11 +240,17 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     private fun updateUiState(state: UiState) {
+        val mode = PreferencesManager.getEngineMode(applicationContext)
+        val modelLabel = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) {
+            "Remote Server"
+        } else {
+            val selectedFileName = PreferencesManager.getSelectedModelFileName(applicationContext)
+            ModelManager.getModelInfoByFileName(selectedFileName).name
+        }
+
         when (state) {
             UiState.IDLE -> {
-                val mode = PreferencesManager.getEngineMode(applicationContext)
-                val engineLabel = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) "Server" else "Offline Edge"
-                tvStatus?.text = "Listening ($engineLabel)..."
+                tvStatus?.text = "Ready ($modelLabel)"
                 tvPrompt?.text = "Hold to talk"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_idle)
                 progressBar?.visibility = View.GONE
@@ -251,7 +258,7 @@ class VoiceInputMethodService : InputMethodService() {
                 btnMic?.isEnabled = true
             }
             UiState.RECORDING -> {
-                tvStatus?.text = "Listening..."
+                tvStatus?.text = "Listening ($modelLabel)..."
                 tvPrompt?.text = "Release to send"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_recording)
                 progressBar?.visibility = View.GONE
@@ -259,9 +266,7 @@ class VoiceInputMethodService : InputMethodService() {
                 btnMic?.isEnabled = true
             }
             UiState.TRANSCRIBING -> {
-                val mode = PreferencesManager.getEngineMode(applicationContext)
-                val statusText = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) "Transcribing (Remote)..." else "Transcribing (Edge NDK)..."
-                tvStatus?.text = statusText
+                tvStatus?.text = "Transcribing ($modelLabel)..."
                 tvPrompt?.text = "Processing audio..."
                 progressBar?.visibility = View.VISIBLE
                 btnCancelTranscription?.visibility = View.VISIBLE
