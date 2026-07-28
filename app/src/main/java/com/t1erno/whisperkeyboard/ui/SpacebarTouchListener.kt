@@ -17,6 +17,9 @@ class SpacebarTouchListener(
     private var lastStepY = 0f
     private var isSwiping = false
 
+    // Preferred column index to maintain perfectly straight (linear) vertical up/down movement
+    private var preferredColumn: Int = -1
+
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -25,6 +28,7 @@ class SpacebarTouchListener(
                 lastStepX = event.rawX
                 lastStepY = event.rawY
                 isSwiping = false
+                preferredColumn = -1
                 v.isPressed = true
                 v.parent?.requestDisallowInterceptTouchEvent(true)
                 return true
@@ -47,6 +51,7 @@ class SpacebarTouchListener(
 
                     // Horizontal cursor movement (Left / Right)
                     if (abs(stepDeltaX) >= STEP_DISTANCE_HORIZONTAL_PX && ic != null) {
+                        preferredColumn = -1 // Reset preferred column on horizontal adjustment
                         val moved = if (stepDeltaX > 0) moveCursorRight(ic) else moveCursorLeft(ic)
                         if (moved) {
                             VibrationHelper.vibrateKey(v.context, 12L)
@@ -54,7 +59,7 @@ class SpacebarTouchListener(
                         lastStepX = event.rawX
                     }
 
-                    // Vertical cursor movement (Up / Down) - Pure selection based, ZERO DPAD key dispatching
+                    // Vertical cursor movement (Up / Down)
                     if (abs(stepDeltaY) >= STEP_DISTANCE_VERTICAL_PX && ic != null) {
                         val moved = if (stepDeltaY > 0) moveCursorDown(ic) else moveCursorUp(ic)
                         if (moved) {
@@ -73,6 +78,7 @@ class SpacebarTouchListener(
                     onSpaceClick()
                 }
                 isSwiping = false
+                preferredColumn = -1
                 return true
             }
         }
@@ -83,16 +89,14 @@ class SpacebarTouchListener(
         val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
         if (extracted != null && extracted.text != null) {
             val cursor = extracted.selectionStart
-            if (cursor <= 0) return false // At start of text field! Stop safely without scrolling app.
+            if (cursor <= 0) return false
             val targetPos = (cursor - 1).coerceAtLeast(0)
             return ic.setSelection(targetPos, targetPos)
         }
 
-        val before = ic.getTextBeforeCursor(1, 0) ?: ""
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
         if (before.isEmpty()) return false
-        val targetBefore = ic.getTextBeforeCursor(2000, 0) ?: ""
-        if (targetBefore.isEmpty()) return false
-        val newPos = (targetBefore.length - 1).coerceAtLeast(0)
+        val newPos = (before.length - 1).coerceAtLeast(0)
         return ic.setSelection(newPos, newPos)
     }
 
@@ -101,7 +105,7 @@ class SpacebarTouchListener(
         if (extracted != null && extracted.text != null) {
             val cursor = extracted.selectionStart
             val textLength = extracted.text.length
-            if (cursor >= textLength) return false // At end of text field! Stop safely without scrolling app.
+            if (cursor >= textLength) return false
             val targetPos = (cursor + 1).coerceAtMost(textLength)
             return ic.setSelection(targetPos, targetPos)
         }
@@ -124,19 +128,25 @@ class SpacebarTouchListener(
             val textBefore = fullText.substring(0, cursor)
             val lastLineBreak = textBefore.lastIndexOf('\n')
             if (lastLineBreak >= 0) {
-                val currentColumn = textBefore.length - 1 - lastLineBreak
+                if (preferredColumn < 0) {
+                    preferredColumn = textBefore.length - 1 - lastLineBreak
+                }
+
                 val textBeforePrevLine = textBefore.substring(0, lastLineBreak)
                 val prevLineBreak = textBeforePrevLine.lastIndexOf('\n')
                 val prevLineStart = if (prevLineBreak < 0) 0 else prevLineBreak + 1
                 val prevLineLength = lastLineBreak - prevLineStart
 
-                val targetColumn = currentColumn.coerceAtMost(prevLineLength)
+                val targetColumn = preferredColumn.coerceAtMost(prevLineLength)
                 val targetPos = prevLineStart + targetColumn
                 return ic.setSelection(targetPos, targetPos)
             } else {
-                // If no explicit newline, jump up by average line length (approx 40 chars)
-                if (cursor <= 0) return false
-                val targetPos = (cursor - ESTIMATED_LINE_CHARS).coerceAtLeast(0)
+                // Word-wrapped text line without explicit '\n'
+                if (preferredColumn < 0) {
+                    preferredColumn = textBefore.length
+                }
+                val lineLength = ESTIMATED_LINE_CHARS
+                val targetPos = (cursor - lineLength).coerceAtLeast(0)
                 return ic.setSelection(targetPos, targetPos)
             }
         }
@@ -146,13 +156,15 @@ class SpacebarTouchListener(
 
         val lastLineBreak = before.lastIndexOf('\n')
         if (lastLineBreak >= 0) {
-            val currentColumn = before.length - 1 - lastLineBreak
+            if (preferredColumn < 0) {
+                preferredColumn = before.length - 1 - lastLineBreak
+            }
             val textBeforePrevLine = before.substring(0, lastLineBreak)
             val prevLineBreak = textBeforePrevLine.lastIndexOf('\n')
             val prevLineStart = if (prevLineBreak < 0) 0 else prevLineBreak + 1
             val prevLineLength = lastLineBreak - prevLineStart
 
-            val targetColumn = currentColumn.coerceAtMost(prevLineLength)
+            val targetColumn = preferredColumn.coerceAtMost(prevLineLength)
             val targetPos = prevLineStart + targetColumn
             return ic.setSelection(targetPos, targetPos)
         } else {
@@ -169,12 +181,15 @@ class SpacebarTouchListener(
 
             if (cursor >= fullText.length) return false
 
+            val textBefore = fullText.substring(0, cursor)
             val textAfter = fullText.substring(cursor)
+
             val nextLineBreak = textAfter.indexOf('\n')
             if (nextLineBreak >= 0) {
-                val textBefore = fullText.substring(0, cursor)
                 val lastLineBreakBefore = textBefore.lastIndexOf('\n')
-                val currentColumn = if (lastLineBreakBefore < 0) textBefore.length else textBefore.length - 1 - lastLineBreakBefore
+                if (preferredColumn < 0) {
+                    preferredColumn = if (lastLineBreakBefore < 0) textBefore.length else textBefore.length - 1 - lastLineBreakBefore
+                }
 
                 val currentPos = cursor
                 val nextLineStart = currentPos + nextLineBreak + 1
@@ -182,12 +197,13 @@ class SpacebarTouchListener(
                 val nextLineBreak2 = textAfterNextLine.indexOf('\n')
                 val nextLineLength = if (nextLineBreak2 < 0) textAfterNextLine.length else nextLineBreak2
 
-                val targetColumn = currentColumn.coerceAtMost(nextLineLength)
+                val targetColumn = preferredColumn.coerceAtMost(nextLineLength)
                 val targetPos = nextLineStart + targetColumn
                 return ic.setSelection(targetPos, targetPos)
             } else {
-                // If no explicit newline, jump down by average line length
-                val targetPos = (cursor + ESTIMATED_LINE_CHARS).coerceAtMost(fullText.length)
+                // Word-wrapped text line without explicit '\n'
+                val totalLength = fullText.length
+                val targetPos = (cursor + ESTIMATED_LINE_CHARS).coerceAtMost(totalLength)
                 return ic.setSelection(targetPos, targetPos)
             }
         }
@@ -199,7 +215,9 @@ class SpacebarTouchListener(
         val nextLineBreak = after.indexOf('\n')
         if (nextLineBreak >= 0) {
             val lastLineBreakBefore = before.lastIndexOf('\n')
-            val currentColumn = if (lastLineBreakBefore < 0) before.length else before.length - 1 - lastLineBreakBefore
+            if (preferredColumn < 0) {
+                preferredColumn = if (lastLineBreakBefore < 0) before.length else before.length - 1 - lastLineBreakBefore
+            }
 
             val currentPos = before.length
             val nextLineStart = currentPos + nextLineBreak + 1
@@ -207,7 +225,7 @@ class SpacebarTouchListener(
             val nextLineBreak2 = afterNextLine.indexOf('\n')
             val nextLineLength = if (nextLineBreak2 < 0) afterNextLine.length else nextLineBreak2
 
-            val targetColumn = currentColumn.coerceAtMost(nextLineLength)
+            val targetColumn = preferredColumn.coerceAtMost(nextLineLength)
             val targetPos = nextLineStart + targetColumn
             return ic.setSelection(targetPos, targetPos)
         } else {
