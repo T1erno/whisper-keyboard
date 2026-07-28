@@ -1,6 +1,5 @@
 package com.t1erno.whisperkeyboard.ui
 
-import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.ExtractedTextRequest
@@ -55,7 +54,7 @@ class SpacebarTouchListener(
                         lastStepX = event.rawX
                     }
 
-                    // Vertical cursor movement (Up / Down)
+                    // Vertical cursor movement (Up / Down) - Pure selection based, ZERO DPAD key dispatching
                     if (abs(stepDeltaY) >= STEP_DISTANCE_VERTICAL_PX && ic != null) {
                         val moved = if (stepDeltaY > 0) moveCursorDown(ic) else moveCursorUp(ic)
                         if (moved) {
@@ -84,17 +83,17 @@ class SpacebarTouchListener(
         val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
         if (extracted != null && extracted.text != null) {
             val cursor = extracted.selectionStart
-            if (cursor > 0) {
-                val targetPos = cursor - 1
-                return ic.setSelection(targetPos, targetPos)
-            }
+            if (cursor <= 0) return false // At start of text field! Stop safely without scrolling app.
+            val targetPos = (cursor - 1).coerceAtLeast(0)
+            return ic.setSelection(targetPos, targetPos)
         }
 
-        // Fallback for custom views
-        val keycode = KeyEvent.KEYCODE_DPAD_LEFT
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
-        return true
+        val before = ic.getTextBeforeCursor(1, 0) ?: ""
+        if (before.isEmpty()) return false
+        val targetBefore = ic.getTextBeforeCursor(2000, 0) ?: ""
+        if (targetBefore.isEmpty()) return false
+        val newPos = (targetBefore.length - 1).coerceAtLeast(0)
+        return ic.setSelection(newPos, newPos)
     }
 
     private fun moveCursorRight(ic: InputConnection): Boolean {
@@ -102,17 +101,16 @@ class SpacebarTouchListener(
         if (extracted != null && extracted.text != null) {
             val cursor = extracted.selectionStart
             val textLength = extracted.text.length
-            if (cursor < textLength) {
-                val targetPos = cursor + 1
-                return ic.setSelection(targetPos, targetPos)
-            }
+            if (cursor >= textLength) return false // At end of text field! Stop safely without scrolling app.
+            val targetPos = (cursor + 1).coerceAtMost(textLength)
+            return ic.setSelection(targetPos, targetPos)
         }
 
-        // Fallback for custom views
-        val keycode = KeyEvent.KEYCODE_DPAD_RIGHT
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
-        return true
+        val after = ic.getTextAfterCursor(1, 0) ?: ""
+        if (after.isEmpty()) return false
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
+        val newPos = before.length + 1
+        return ic.setSelection(newPos, newPos)
     }
 
     private fun moveCursorUp(ic: InputConnection): Boolean {
@@ -120,6 +118,8 @@ class SpacebarTouchListener(
         if (extracted != null && extracted.text != null) {
             val fullText = extracted.text.toString()
             val cursor = extracted.selectionStart.coerceIn(0, fullText.length)
+
+            if (cursor <= 0) return false
 
             val textBefore = fullText.substring(0, cursor)
             val lastLineBreak = textBefore.lastIndexOf('\n')
@@ -133,14 +133,32 @@ class SpacebarTouchListener(
                 val targetColumn = currentColumn.coerceAtMost(prevLineLength)
                 val targetPos = prevLineStart + targetColumn
                 return ic.setSelection(targetPos, targetPos)
+            } else {
+                // If no explicit newline, jump up by average line length (approx 40 chars)
+                if (cursor <= 0) return false
+                val targetPos = (cursor - ESTIMATED_LINE_CHARS).coerceAtLeast(0)
+                return ic.setSelection(targetPos, targetPos)
             }
         }
 
-        // Fallback for word-wrapped paragraphs or custom text fields
-        val keycode = KeyEvent.KEYCODE_DPAD_UP
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
-        return true
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
+        if (before.isEmpty()) return false
+
+        val lastLineBreak = before.lastIndexOf('\n')
+        if (lastLineBreak >= 0) {
+            val currentColumn = before.length - 1 - lastLineBreak
+            val textBeforePrevLine = before.substring(0, lastLineBreak)
+            val prevLineBreak = textBeforePrevLine.lastIndexOf('\n')
+            val prevLineStart = if (prevLineBreak < 0) 0 else prevLineBreak + 1
+            val prevLineLength = lastLineBreak - prevLineStart
+
+            val targetColumn = currentColumn.coerceAtMost(prevLineLength)
+            val targetPos = prevLineStart + targetColumn
+            return ic.setSelection(targetPos, targetPos)
+        } else {
+            val targetPos = (before.length - ESTIMATED_LINE_CHARS).coerceAtLeast(0)
+            return ic.setSelection(targetPos, targetPos)
+        }
     }
 
     private fun moveCursorDown(ic: InputConnection): Boolean {
@@ -148,6 +166,8 @@ class SpacebarTouchListener(
         if (extracted != null && extracted.text != null) {
             val fullText = extracted.text.toString()
             val cursor = extracted.selectionStart.coerceIn(0, fullText.length)
+
+            if (cursor >= fullText.length) return false
 
             val textAfter = fullText.substring(cursor)
             val nextLineBreak = textAfter.indexOf('\n')
@@ -165,19 +185,42 @@ class SpacebarTouchListener(
                 val targetColumn = currentColumn.coerceAtMost(nextLineLength)
                 val targetPos = nextLineStart + targetColumn
                 return ic.setSelection(targetPos, targetPos)
+            } else {
+                // If no explicit newline, jump down by average line length
+                val targetPos = (cursor + ESTIMATED_LINE_CHARS).coerceAtMost(fullText.length)
+                return ic.setSelection(targetPos, targetPos)
             }
         }
 
-        // Fallback for word-wrapped paragraphs or custom text fields
-        val keycode = KeyEvent.KEYCODE_DPAD_DOWN
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
-        return true
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
+        val after = ic.getTextAfterCursor(2000, 0) ?: ""
+        if (after.isEmpty()) return false
+
+        val nextLineBreak = after.indexOf('\n')
+        if (nextLineBreak >= 0) {
+            val lastLineBreakBefore = before.lastIndexOf('\n')
+            val currentColumn = if (lastLineBreakBefore < 0) before.length else before.length - 1 - lastLineBreakBefore
+
+            val currentPos = before.length
+            val nextLineStart = currentPos + nextLineBreak + 1
+            val afterNextLine = after.substring(nextLineBreak + 1)
+            val nextLineBreak2 = afterNextLine.indexOf('\n')
+            val nextLineLength = if (nextLineBreak2 < 0) afterNextLine.length else nextLineBreak2
+
+            val targetColumn = currentColumn.coerceAtMost(nextLineLength)
+            val targetPos = nextLineStart + targetColumn
+            return ic.setSelection(targetPos, targetPos)
+        } else {
+            val totalLength = before.length + after.length
+            val targetPos = (before.length + ESTIMATED_LINE_CHARS).coerceAtMost(totalLength)
+            return ic.setSelection(targetPos, targetPos)
+        }
     }
 
     companion object {
         private const val SWIPE_ACTIVATION_THRESHOLD_PX = 16f
         private const val STEP_DISTANCE_HORIZONTAL_PX = 18f
         private const val STEP_DISTANCE_VERTICAL_PX = 22f
+        private const val ESTIMATED_LINE_CHARS = 35
     }
 }
