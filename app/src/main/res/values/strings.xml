@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Whisper Voice Keyboard</string>
+    <string name="keyboard_name">Whisper Voice IME</string>
+    <string name="subtype_voice">Voice Input</string>
+
+    <string name="status_idle">Tap or hold microphone to dictate</string>
+    <string name="status_recording">Listening... Tap to stop</string>
+    <string name="status_transcribing">Transcribing audio...</string>
+    <string name="status_error">Error during transcription</string>
+
+    <!-- MainActivity Strings -->
+    <string name="main_title">Whisper Voice Keyboard Setup</string>
+    <string name="main_subtitle">Follow these steps to activate your AI voice keyboard</string>
+    <string name="step_1_title">1. Grant Microphone Permission</string>
+    <string name="step_1_granted">Microphone Permission Granted ✓</string>
+    <string name="step_1_btn">Grant Permission</string>
+    <string name="step_2_title">2. Enable Keyboard in System Settings</string>
+    <string name="step_2_btn">Open Keyboard Settings</string>
+    <string name="step_3_title">3. Select Active Keyboard</string>
+    <string name="step_3_btn">Choose Input Method</string>
+    <string name="test_field_hint">Test your voice keyboard here...</string>
+</resources>

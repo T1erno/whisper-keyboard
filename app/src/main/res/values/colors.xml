@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sleek Deep Purple Theme Palette -->
+    <color name="keyboard_bg">#181424</color>
+    <color name="keyboard_background">#181424</color>
+    <color name="card_bg">#251F36</color>
+    <color name="key_bg">#342B4A</color>
+    <color name="key_pressed">#483C66</color>
+    <color name="action_btn_bg">#342B4A</color>
+
+    <!-- Electric Purple Gradients -->
+    <color name="mic_purple_start">#9333EA</color>
+    <color name="mic_purple_end">#6D28D9</color>
+    <color name="mic_recording_start">#E11D48</color>
+    <color name="mic_recording_end">#C026D3</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FAF5FF</color>
+    <color name="text_secondary">#C084FC</color>
+    <color name="accent_purple">#8B5CF6</color>
+    <color name="accent_color">#8B5CF6</color>
+    <color name="accent_blue">#8B5CF6</color>
+</resources>
