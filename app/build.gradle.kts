@@ -23,7 +23,9 @@ android {
                     "-DGGML_OPENMP=ON",
                     "-DWHISPER_BUILD_TESTS=OFF",
                     "-DWHISPER_BUILD_EXAMPLES=OFF",
-                    "-DBUILD_SHARED_LIBS=OFF"
+                    "-DBUILD_SHARED_LIBS=OFF",
+                    "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384",
+                    "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
                 )
             }
         }

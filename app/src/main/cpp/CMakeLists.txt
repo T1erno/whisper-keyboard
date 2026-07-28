@@ -4,6 +4,9 @@ project("whisper_native")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 16 KB page size alignment for Android 15+ devices & Google Play compliance
+add_link_options("-Wl,-z,max-page-size=16384")
+
 # Optimize for ARM64 NEON FP16 + DotProduct hardware vectorization specifically on arm64-v8a
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     add_compile_options(-O3 -flto -fno-finite-math-only -march=armv8.2-a+fp16+dotprod)
