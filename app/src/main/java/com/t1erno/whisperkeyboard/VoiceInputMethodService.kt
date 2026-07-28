@@ -1,18 +1,15 @@
 package com.t1erno.whisperkeyboard
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.os.Handler
-import android.os.Looper
-import android.view.ContextThemeWrapper
+import android.inputmethodservice.InputMethodService
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -24,90 +21,121 @@ import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
 import com.t1erno.whisperkeyboard.ui.ProgressiveBackspace
 import com.t1erno.whisperkeyboard.ui.PunctuationKeyManager
+import com.t1erno.whisperkeyboard.ui.SpacebarTouchListener
 import com.t1erno.whisperkeyboard.ui.VibrationHelper
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class VoiceInputMethodService : InputMethodService() {
 
-    private val serviceJob = Job()
-    private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + serviceJob)
-
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var audioRecorderManager: AudioRecorderManager
-    private lateinit var punctuationKeyManager: PunctuationKeyManager
-    private lateinit var progressiveBackspace: ProgressiveBackspace
 
-    private var toneGenerator: ToneGenerator? = null
-
-    private var btnMic: ImageButton? = null
     private var tvStatus: TextView? = null
     private var tvPrompt: TextView? = null
+    private var btnMic: ImageButton? = null
     private var progressBar: ProgressBar? = null
-    private var btnCancelTranscription: Button? = null
+    private var btnCancelTranscription: View? = null
 
-    private var isTranscribing = false
+    private var toneGenerator: ToneGenerator? = null
     private var transcriptionJob: Job? = null
+    private var amplitudeMonitorJob: Job? = null
+    private lateinit var progressiveBackspace: ProgressiveBackspace
+    private lateinit var punctuationKeyManager: PunctuationKeyManager
+
+    private var isTapToTalkActive = false
+    private var touchDownTimeMs = 0L
+
+    private sealed class UiState {
+        object IDLE : UiState()
+        object RECORDING : UiState()
+        object TRANSCRIBING : UiState()
+        data class ERROR(val message: String) : UiState()
+    }
 
     override fun onCreate() {
         super.onCreate()
         audioRecorderManager = AudioRecorderManager(this)
-        punctuationKeyManager = PunctuationKeyManager { symbol ->
-            currentInputConnection?.commitText(symbol, 1)
-        }
-        progressiveBackspace = ProgressiveBackspace {
-            currentInputConnection
+        progressiveBackspace = ProgressiveBackspace { currentInputConnection }
+        punctuationKeyManager = PunctuationKeyManager { text ->
+            currentInputConnection?.commitText(text, 1)
         }
         try {
-            toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
+            toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
         } catch (_: Exception) {}
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+        toneGenerator?.release()
+        toneGenerator = null
+    }
+
     override fun onCreateInputView(): View {
-        val contextThemeWrapper = ContextThemeWrapper(this, R.style.Theme_WhisperKeyboard)
-        val themedInflater = layoutInflater.cloneInContext(contextThemeWrapper)
-        val inputView = themedInflater.inflate(R.layout.input_view, null)
+        val view = layoutInflater.inflate(R.layout.input_view, null)
 
-        btnMic = inputView.findViewById(R.id.btn_mic)
-        tvStatus = inputView.findViewById(R.id.tv_status)
-        tvPrompt = inputView.findViewById(R.id.tv_prompt)
-        progressBar = inputView.findViewById(R.id.progress_bar)
-        btnCancelTranscription = inputView.findViewById(R.id.btn_cancel_transcription)
-
-        btnCancelTranscription?.setOnClickListener {
-            cancelTranscription()
-        }
+        tvStatus = view.findViewById(R.id.tv_status)
+        tvPrompt = view.findViewById(R.id.tv_prompt)
+        btnMic = view.findViewById(R.id.btn_mic)
+        progressBar = view.findViewById(R.id.progress_bar)
+        btnCancelTranscription = view.findViewById(R.id.btn_cancel_transcription)
 
         setupMicButton()
-        punctuationKeyManager.setupPunctuationKeys(inputView, contextThemeWrapper)
-        setupUtilityButtons(inputView)
+        punctuationKeyManager.setupPunctuationKeys(view, this)
+        setupUtilityButtons(view)
+
+        btnCancelTranscription?.setOnClickListener {
+            VibrationHelper.vibrateKey(this, 20L)
+            cancelTranscription()
+            updateUiState(UiState.IDLE)
+        }
 
         updateUiState(UiState.IDLE)
-        return inputView
+        return view
     }
 
     private fun setupMicButton() {
         btnMic?.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    VibrationHelper.vibrateKey(this, 35L)
-                    playMicBeep()
-                    if (!audioRecorderManager.isRecording && !isTranscribing) {
-                        if (hasRecordAudioPermission()) {
-                            startRecording()
-                        } else {
-                            promptForPermission()
-                        }
+                    if (!hasRecordAudioPermission()) {
+                        promptForPermission()
+                        return@setOnTouchListener true
                     }
+
+                    touchDownTimeMs = System.currentTimeMillis()
+
+                    if (isTapToTalkActive && audioRecorderManager.isRecording) {
+                        // Tapped while in tap-to-talk mode -> stop recording
+                        isTapToTalkActive = false
+                        stopAndProcessRecording()
+                        return@setOnTouchListener true
+                    }
+
+                    playStartBeep()
+                    VibrationHelper.vibrateKey(this, 40L)
+                    startRecording()
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (audioRecorderManager.isRecording && !isTranscribing) {
-                        VibrationHelper.vibrateKey(this, 25L)
-                        stopAndTranscribe()
+                    val pressDurationMs = System.currentTimeMillis() - touchDownTimeMs
+
+                    if (pressDurationMs < TAP_THRESHOLD_MS && audioRecorderManager.isRecording) {
+                        // Short tap detected -> enter Tap-to-Talk mode (keeps recording active hands-free)
+                        isTapToTalkActive = true
+                        tvPrompt?.text = "Tap mic to finish speaking"
+                    } else if (!isTapToTalkActive && audioRecorderManager.isRecording) {
+                        // Hold to talk release -> stop recording immediately
+                        stopAndProcessRecording()
                     }
                     true
                 }
@@ -116,7 +144,67 @@ class VoiceInputMethodService : InputMethodService() {
         }
     }
 
-    private fun playMicBeep() {
+    private fun stopAndProcessRecording() {
+        stopAmplitudeMonitor()
+        playStopBeep()
+        VibrationHelper.vibrateKey(this, 30L)
+        val audioFile = audioRecorderManager.stopRecording()
+        if (audioFile != null) {
+            processTranscription(audioFile)
+        } else {
+            updateUiState(UiState.ERROR("Recording failed"))
+        }
+    }
+
+    private fun startAmplitudeMonitor() {
+        stopAmplitudeMonitor()
+        amplitudeMonitorJob = serviceScope.launch {
+            var speechDetected = false
+            var silenceStartMs = 0L
+
+            while (isActive && audioRecorderManager.isRecording) {
+                val amp = audioRecorderManager.getMaxAmplitude()
+
+                // Live Audio Waveform Pulse Animation
+                val normalized = (amp / 25000.0f).coerceIn(0.0f, 1.0f)
+                val targetScale = 1.0f + (normalized * 0.35f)
+                btnMic?.scaleX = targetScale
+                btnMic?.scaleY = targetScale
+
+                // Voice Activity Detection (VAD) / Silence Auto-Stop
+                if (amp > SPEECH_DETECTION_THRESHOLD_AMP) {
+                    speechDetected = true
+                    silenceStartMs = 0L
+                } else if (speechDetected && amp < SILENCE_THRESHOLD_AMP) {
+                    if (silenceStartMs == 0L) {
+                        silenceStartMs = System.currentTimeMillis()
+                    } else if (System.currentTimeMillis() - silenceStartMs >= SILENCE_AUTO_STOP_DURATION_MS) {
+                        // Silence auto-stop triggered!
+                        isTapToTalkActive = false
+                        stopAndProcessRecording()
+                        break
+                    }
+                }
+
+                delay(60L)
+            }
+        }
+    }
+
+    private fun stopAmplitudeMonitor() {
+        amplitudeMonitorJob?.cancel()
+        amplitudeMonitorJob = null
+        btnMic?.scaleX = 1.0f
+        btnMic?.scaleY = 1.0f
+    }
+
+    private fun playStartBeep() {
+        try {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
+        } catch (_: Exception) {}
+    }
+
+    private fun playStopBeep() {
         try {
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_PROMPT, 80)
         } catch (_: Exception) {}
@@ -136,9 +224,16 @@ class VoiceInputMethodService : InputMethodService() {
             requestHideSelf(0)
         }
 
-        view.findViewById<View>(R.id.btn_space)?.setOnClickListener {
-            VibrationHelper.vibrateKey(this, 20L)
-            currentInputConnection?.commitText(" ", 1)
+        view.findViewById<View>(R.id.btn_space)?.let { btn ->
+            btn.setOnTouchListener(
+                SpacebarTouchListener(
+                    inputConnectionProvider = { currentInputConnection },
+                    onSpaceClick = {
+                        VibrationHelper.vibrateKey(this, 20L)
+                        currentInputConnection?.commitText(" ", 1)
+                    }
+                )
+            )
         }
 
         view.findViewById<ImageButton>(R.id.btn_backspace)?.let { btn ->
@@ -172,154 +267,123 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     private fun startRecording() {
+        isTapToTalkActive = false
         val file = audioRecorderManager.startRecording()
         if (file != null) {
             updateUiState(UiState.RECORDING)
+            startAmplitudeMonitor()
         } else {
             updateUiState(UiState.ERROR("Failed to access microphone"))
         }
     }
 
     private fun cancelTranscription() {
+        stopAmplitudeMonitor()
         transcriptionJob?.cancel()
         transcriptionJob = null
-        isTranscribing = false
-        audioRecorderManager.releaseRecorder()
-        updateUiState(UiState.IDLE)
-        Toast.makeText(this, "Transcription cancelled", Toast.LENGTH_SHORT).show()
+        isTapToTalkActive = false
     }
 
-    private fun stopAndTranscribe() {
-        isTranscribing = true
+    private fun processTranscription(audioFile: File) {
+        stopAmplitudeMonitor()
         updateUiState(UiState.TRANSCRIBING)
 
-        transcriptionJob = serviceScope.launch(Dispatchers.IO) {
-            val recordedFile = audioRecorderManager.stopRecording()
-
-            if (recordedFile != null && recordedFile.exists() && recordedFile.length() > 1000) {
-                try {
-                    val engineMode = PreferencesManager.getEngineMode(applicationContext)
-                    val result = if (engineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-                        WhisperApiClient.uploadAudio(applicationContext, recordedFile)
-                    } else {
-                        OnDeviceTranscriber.transcribeAudioFile(applicationContext, recordedFile)
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        result.fold(
-                            onSuccess = { text ->
-                                injectText(text)
-                                updateUiState(UiState.IDLE)
-                            },
-                            onFailure = { error ->
-                                updateUiState(UiState.ERROR(error.message ?: "Transcription error"))
-                            }
-                        )
-                    }
-                } catch (e: CancellationException) {
-                    withContext(Dispatchers.Main) {
-                        updateUiState(UiState.IDLE)
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        updateUiState(UiState.ERROR(e.message ?: "Error transcribing"))
-                    }
-                } finally {
-                    recordedFile.delete()
-                    isTranscribing = false
-                    transcriptionJob = null
-                }
+        transcriptionJob = serviceScope.launch {
+            val mode = PreferencesManager.getEngineMode(this@VoiceInputMethodService)
+            val result = if (mode == PreferencesManager.EngineMode.EDGE_ON_DEVICE) {
+                transcribeOnDevice(audioFile)
             } else {
-                withContext(Dispatchers.Main) {
+                WhisperApiClient.uploadAudio(this@VoiceInputMethodService, audioFile)
+            }
+
+            result.fold(
+                onSuccess = { text ->
+                    commitTextToInput(text)
                     updateUiState(UiState.IDLE)
+                },
+                onFailure = { error ->
+                    updateUiState(UiState.ERROR(error.message ?: "Transcription failed"))
                 }
-                isTranscribing = false
-                transcriptionJob = null
+            )
+
+            if (audioFile.exists()) {
+                audioFile.delete()
             }
         }
     }
 
-    private fun injectText(text: String) {
+    private suspend fun transcribeOnDevice(audioFile: File): Result<String> = withContext(Dispatchers.IO) {
+        val selectedFileName = PreferencesManager.getSelectedModelFileName(this@VoiceInputMethodService)
+        val modelFile = ModelManager.getModelFile(this@VoiceInputMethodService, selectedFileName)
+
+        if (!modelFile.exists()) {
+            val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+            return@withContext Result.failure(Exception("Model missing (${modelInfo.name}). Download in settings."))
+        }
+
+        OnDeviceTranscriber.transcribeAudioFile(this@VoiceInputMethodService, audioFile)
+    }
+
+    private fun commitTextToInput(text: String) {
         val ic = currentInputConnection ?: return
-        ic.commitText(text, 1)
+        val trimmed = text.trim()
+        if (trimmed.isNotEmpty()) {
+            ic.commitText("$trimmed ", 1)
+        }
     }
 
     private fun updateUiState(state: UiState) {
-        val mode = PreferencesManager.getEngineMode(applicationContext)
-        val modelLabel = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-            "Remote Server"
-        } else {
-            val selectedFileName = PreferencesManager.getSelectedModelFileName(applicationContext)
-            ModelManager.getModelInfoByFileName(selectedFileName).name
-        }
+        val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
+        val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+        val mode = PreferencesManager.getEngineMode(this)
+        val modelLabel = if (mode == PreferencesManager.EngineMode.EDGE_ON_DEVICE) modelInfo.name else "Remote Server"
 
         when (state) {
-            UiState.IDLE -> {
-                tvStatus?.text = "Ready ($modelLabel)"
-                tvPrompt?.text = "Hold to talk"
+            is UiState.IDLE -> {
+                tvStatus?.text = getString(R.string.status_idle)
+                tvPrompt?.text = "Hold or tap to talk"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_idle)
+                btnMic?.setImageResource(R.drawable.ic_mic)
+                btnMic?.isEnabled = true
                 progressBar?.visibility = View.GONE
                 btnCancelTranscription?.visibility = View.GONE
-                btnMic?.isEnabled = true
+                stopAmplitudeMonitor()
             }
-            UiState.RECORDING -> {
+            is UiState.RECORDING -> {
                 tvStatus?.text = "Listening ($modelLabel)..."
-                tvPrompt?.text = "Release to send"
+                tvPrompt?.text = "Release or tap to finish"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_recording)
+                btnMic?.setImageResource(R.drawable.ic_mic)
+                btnMic?.isEnabled = true
                 progressBar?.visibility = View.GONE
                 btnCancelTranscription?.visibility = View.GONE
-                btnMic?.isEnabled = true
             }
-            UiState.TRANSCRIBING -> {
+            is UiState.TRANSCRIBING -> {
                 tvStatus?.text = "Transcribing ($modelLabel)..."
                 tvPrompt?.text = "Processing audio..."
+                btnMic?.setBackgroundResource(R.drawable.bg_mic_button_idle)
+                btnMic?.isEnabled = false
                 progressBar?.visibility = View.VISIBLE
                 btnCancelTranscription?.visibility = View.VISIBLE
-                btnMic?.isEnabled = false
+                stopAmplitudeMonitor()
             }
             is UiState.ERROR -> {
-                tvStatus?.text = state.message
+                tvStatus?.text = "Error: ${state.message}"
                 tvPrompt?.text = "Tap mic to retry"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_idle)
+                btnMic?.setImageResource(R.drawable.ic_mic)
+                btnMic?.isEnabled = true
                 progressBar?.visibility = View.GONE
                 btnCancelTranscription?.visibility = View.GONE
-                btnMic?.isEnabled = true
-
-                Handler(Looper.getMainLooper()).postDelayed({
-                    if (!audioRecorderManager.isRecording && !isTranscribing) {
-                        updateUiState(UiState.IDLE)
-                    }
-                }, 2500)
+                stopAmplitudeMonitor()
             }
         }
     }
 
-    override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
-        progressiveBackspace.stop()
-        if (audioRecorderManager.isRecording) {
-            audioRecorderManager.stopRecording()
-            updateUiState(UiState.IDLE)
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        progressiveBackspace.stop()
-        transcriptionJob?.cancel()
-        audioRecorderManager.releaseRecorder()
-        OnDeviceTranscriber.releaseContext()
-        try {
-            toneGenerator?.release()
-        } catch (_: Exception) {}
-        toneGenerator = null
-        serviceJob.cancel()
-    }
-
-    private sealed class UiState {
-        object IDLE : UiState()
-        object RECORDING : UiState()
-        object TRANSCRIBING : UiState()
-        data class ERROR(val message: String) : UiState()
+    companion object {
+        private const val TAP_THRESHOLD_MS = 250L
+        private const val SPEECH_DETECTION_THRESHOLD_AMP = 1500
+        private const val SILENCE_THRESHOLD_AMP = 1200
+        private const val SILENCE_AUTO_STOP_DURATION_MS = 1800L
     }
 }

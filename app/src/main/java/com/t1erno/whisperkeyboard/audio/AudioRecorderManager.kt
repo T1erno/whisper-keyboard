@@ -47,6 +47,14 @@ class AudioRecorderManager(private val context: Context) {
         }
     }
 
+    fun getMaxAmplitude(): Int {
+        return try {
+            if (isRecording) mediaRecorder?.maxAmplitude ?: 0 else 0
+        } catch (e: Exception) {
+            0
+        }
+    }
+
     @Synchronized
     fun stopRecording(): File? {
         if (!isRecording) {
