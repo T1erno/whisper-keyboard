@@ -68,7 +68,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSelectKeyboard: Button
 
     private var pingJob: Job? = null
-    private var isDownloading = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -207,9 +206,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnDownloadModel.setOnClickListener {
-            if (!isDownloading) {
-                startModelDownload()
-            }
+            startParallelModelDownload()
         }
     }
 
@@ -217,44 +214,57 @@ class MainActivity : AppCompatActivity() {
         val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
         val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
+        val isDownloading = ModelManager.isModelDownloading(selectedFileName)
+        val progress = ModelManager.getDownloadProgress(selectedFileName)
 
         if (isDownloaded) {
             tvModelStatus.text = "✓ Model ready: ${modelInfo.name}"
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
+            pbModelDownload.visibility = View.GONE
+        } else if (isDownloading) {
+            tvModelStatus.text = "Downloading ${modelInfo.name} (Parallel 4-Stream)... ${progress ?: 0}%"
+            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnDownloadModel.visibility = View.VISIBLE
+            btnDownloadModel.isEnabled = false
+            btnDownloadModel.text = "Downloading..."
+            pbModelDownload.visibility = View.VISIBLE
+            pbModelDownload.progress = progress ?: 0
         } else {
             tvModelStatus.text = "Model missing: ${modelInfo.name}. Tap download below."
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnDownloadModel.text = "Download ${modelInfo.name}"
+            btnDownloadModel.text = "Download ${modelInfo.name} (Parallel 4-Stream)"
             btnDownloadModel.visibility = View.VISIBLE
-            btnDownloadModel.isEnabled = !isDownloading
+            btnDownloadModel.isEnabled = true
+            pbModelDownload.visibility = View.GONE
         }
     }
 
-    private fun startModelDownload() {
+    private fun startParallelModelDownload() {
         val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
 
-        isDownloading = true
-        btnDownloadModel.isEnabled = false
-        pbModelDownload.visibility = View.VISIBLE
-        pbModelDownload.progress = 0
-        tvModelStatus.text = "Downloading ${modelInfo.name}..."
+        if (ModelManager.isModelDownloading(selectedFileName)) return
+
+        updateModelStatusUI()
 
         lifecycleScope.launch {
-            val result = ModelManager.downloadModel(this@MainActivity, modelInfo) { percent ->
+            val result = ModelManager.downloadModelParallel(
+                context = this@MainActivity,
+                modelInfo = modelInfo,
+                numThreads = 4
+            ) { percent ->
                 lifecycleScope.launch {
-                    pbModelDownload.progress = percent
-                    tvModelStatus.text = "Downloading ${modelInfo.name}: $percent%"
+                    val currentSelected = PreferencesManager.getSelectedModelFileName(this@MainActivity)
+                    if (currentSelected == modelInfo.fileName) {
+                        updateModelStatusUI()
+                    }
                 }
             }
 
-            isDownloading = false
-            pbModelDownload.visibility = View.GONE
-
             result.fold(
                 onSuccess = { _ ->
-                    Toast.makeText(this@MainActivity, "Model downloaded successfully!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "${modelInfo.name} downloaded successfully!", Toast.LENGTH_LONG).show()
                     updateModelStatusUI()
                 },
                 onFailure = { error ->
