@@ -21,7 +21,7 @@ object ModelManager {
         name = "Large v3 (q5_0)",
         fileName = "ggml-large-v3-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin",
-        description = "Maximum precision (1.0 GB)"
+        description = "Maximum precision (1.08 GB)"
     )
 
     val MODEL_LARGE_V3_TURBO = ModelInfo(
@@ -35,28 +35,28 @@ object ModelManager {
         name = "Medium (q5_0)",
         fileName = "ggml-medium-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
-        description = "High accuracy (515 MB)"
+        description = "High accuracy (539 MB)"
     )
 
     val MODEL_SMALL = ModelInfo(
-        name = "Small (q5_0)",
-        fileName = "ggml-small-q5_0.bin",
-        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_0.bin",
-        description = "Balanced speed & memory (182 MB)"
+        name = "Small",
+        fileName = "ggml-small.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+        description = "Balanced speed & memory (487 MB)"
     )
 
     val MODEL_BASE = ModelInfo(
-        name = "Base (q5_0)",
-        fileName = "ggml-base-q5_0.bin",
-        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_0.bin",
-        description = "Lightweight (57 MB)"
+        name = "Base",
+        fileName = "ggml-base.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+        description = "Lightweight (147 MB)"
     )
 
     val MODEL_TINY = ModelInfo(
-        name = "Tiny (q5_0)",
-        fileName = "ggml-tiny-q5_0.bin",
-        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_0.bin",
-        description = "Fastest, low memory (31 MB)"
+        name = "Tiny",
+        fileName = "ggml-tiny.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+        description = "Fastest, low memory (77 MB)"
     )
 
     val AVAILABLE_MODELS = listOf(

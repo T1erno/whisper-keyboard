@@ -124,7 +124,7 @@
                             android:id="@+id/rb_model_large_v3"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Large v3 (q5_0) • 1.0 GB (Max Precision)"
+                            android:text="Large v3 (q5_0) • 1.08 GB (Max Precision)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 
@@ -140,7 +140,7 @@
                             android:id="@+id/rb_model_medium"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Medium (q5_0) • 515 MB (High Accuracy)"
+                            android:text="Medium (q5_0) • 539 MB (High Accuracy)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 
@@ -148,7 +148,7 @@
                             android:id="@+id/rb_model_small"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Small (q5_0) • 182 MB (Balanced Speed)"
+                            android:text="Small • 487 MB (Balanced Speed)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 
@@ -156,7 +156,7 @@
                             android:id="@+id/rb_model_base"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Base (q5_0) • 57 MB (Lightweight)"
+                            android:text="Base • 147 MB (Lightweight)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 
@@ -164,7 +164,7 @@
                             android:id="@+id/rb_model_tiny"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Tiny (q5_0) • 31 MB (Ultra Fast)"
+                            android:text="Tiny • 77 MB (Ultra Fast)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </RadioGroup>
