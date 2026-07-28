@@ -46,22 +46,18 @@ class SpacebarTouchListener(
                     val ic = inputConnectionProvider()
 
                     // Horizontal cursor movement (Left / Right)
-                    if (abs(stepDeltaX) >= STEP_DISTANCE_HORIZONTAL_PX) {
-                        if (ic != null) {
-                            val keycode = if (stepDeltaX > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+                    if (abs(stepDeltaX) >= STEP_DISTANCE_HORIZONTAL_PX && ic != null) {
+                        val moved = if (stepDeltaX > 0) moveCursorRight(ic) else moveCursorLeft(ic)
+                        if (moved) {
                             VibrationHelper.vibrateKey(v.context, 12L)
                         }
                         lastStepX = event.rawX
                     }
 
-                    // Vertical cursor movement (Up / Down across lines)
-                    if (abs(stepDeltaY) >= STEP_DISTANCE_VERTICAL_PX) {
-                        if (ic != null) {
-                            val keycode = if (stepDeltaY > 0) KeyEvent.KEYCODE_DPAD_DOWN else KeyEvent.KEYCODE_DPAD_UP
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+                    // Vertical cursor movement (Up / Down across multi-line text)
+                    if (abs(stepDeltaY) >= STEP_DISTANCE_VERTICAL_PX && ic != null) {
+                        val moved = if (stepDeltaY > 0) moveCursorDown(ic) else moveCursorUp(ic)
+                        if (moved) {
                             VibrationHelper.vibrateKey(v.context, 12L)
                         }
                         lastStepY = event.rawY
@@ -81,6 +77,72 @@ class SpacebarTouchListener(
             }
         }
         return false
+    }
+
+    private fun moveCursorLeft(ic: InputConnection): Boolean {
+        val before = ic.getTextBeforeCursor(1, 0) ?: ""
+        if (before.isEmpty()) return false
+        val keycode = KeyEvent.KEYCODE_DPAD_LEFT
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+        return true
+    }
+
+    private fun moveCursorRight(ic: InputConnection): Boolean {
+        val after = ic.getTextAfterCursor(1, 0) ?: ""
+        if (after.isEmpty()) return false
+        val keycode = KeyEvent.KEYCODE_DPAD_RIGHT
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+        return true
+    }
+
+    private fun moveCursorUp(ic: InputConnection): Boolean {
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
+        if (before.isEmpty()) return false
+
+        val lastLineBreak = before.lastIndexOf('\n')
+        if (lastLineBreak < 0) {
+            // Already on line 0! Stop here, don't bubble DPAD_UP to parent ScrollView
+            return false
+        }
+
+        val currentColumn = before.length - 1 - lastLineBreak
+        val textBeforePrevLine = before.substring(0, lastLineBreak)
+        val prevLineBreak = textBeforePrevLine.lastIndexOf('\n')
+        val prevLineStart = if (prevLineBreak < 0) 0 else prevLineBreak + 1
+        val prevLineLength = lastLineBreak - prevLineStart
+
+        val targetColumn = currentColumn.coerceAtMost(prevLineLength)
+        val targetPos = prevLineStart + targetColumn
+
+        return ic.setSelection(targetPos, targetPos)
+    }
+
+    private fun moveCursorDown(ic: InputConnection): Boolean {
+        val before = ic.getTextBeforeCursor(2000, 0) ?: ""
+        val after = ic.getTextAfterCursor(2000, 0) ?: ""
+        if (after.isEmpty()) return false
+
+        val nextLineBreak = after.indexOf('\n')
+        if (nextLineBreak < 0) {
+            // Already on last line! Stop here, don't bubble DPAD_DOWN to parent ScrollView
+            return false
+        }
+
+        val lastLineBreakBefore = before.lastIndexOf('\n')
+        val currentColumn = if (lastLineBreakBefore < 0) before.length else before.length - 1 - lastLineBreakBefore
+
+        val currentPos = before.length
+        val nextLineStart = currentPos + nextLineBreak + 1
+        val afterNextLine = after.substring(nextLineBreak + 1)
+        val nextLineBreak2 = afterNextLine.indexOf('\n')
+        val nextLineLength = if (nextLineBreak2 < 0) afterNextLine.length else nextLineBreak2
+
+        val targetColumn = currentColumn.coerceAtMost(nextLineLength)
+        val targetPos = nextLineStart + targetColumn
+
+        return ic.setSelection(targetPos, targetPos)
     }
 
     companion object {
