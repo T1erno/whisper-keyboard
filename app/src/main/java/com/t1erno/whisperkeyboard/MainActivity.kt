@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
@@ -127,11 +128,11 @@ class MainActivity : AppCompatActivity() {
         btnSaveUrl.setOnClickListener {
             val urlInput = etServerUrl.text.toString().trim()
             if (urlInput.isNotEmpty()) {
-                PreferencesManager.saveServerUrl(this, urlInput)
-                val updatedUrl = PreferencesManager.getServerUrl(this)
-                etServerUrl.setText(updatedUrl)
-                Toast.makeText(this, "Server URL saved!", Toast.LENGTH_SHORT).show()
-                startPeriodicTcpPing()
+                if (urlInput.startsWith("http://", ignoreCase = true)) {
+                    showHttpWarningDialog(urlInput)
+                } else {
+                    saveAndApplyServerUrl(urlInput)
+                }
             } else {
                 Toast.makeText(this, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
             }
@@ -149,6 +150,29 @@ class MainActivity : AppCompatActivity() {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showInputMethodPicker()
         }
+    }
+
+    private fun showHttpWarningDialog(httpUrl: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("⚠️ Unencrypted Connection (HTTP)")
+            .setMessage("You are connecting using unencrypted HTTP ($httpUrl).\n\nAudio recordings and transcriptions will be transmitted over the network in plain text without SSL/TLS encryption.\n\nDo you want to proceed anyway or switch to HTTPS?")
+            .setPositiveButton("Proceed (HTTP)") { _, _ ->
+                saveAndApplyServerUrl(httpUrl)
+            }
+            .setNegativeButton("Use HTTPS Instead") { _, _ ->
+                val httpsUrl = httpUrl.replaceFirst("http://", "https://", ignoreCase = true)
+                saveAndApplyServerUrl(httpsUrl)
+            }
+            .setNeutralButton("Cancel", null)
+            .show()
+    }
+
+    private fun saveAndApplyServerUrl(url: String) {
+        PreferencesManager.saveServerUrl(this, url)
+        val updatedUrl = PreferencesManager.getServerUrl(this)
+        etServerUrl.setText(updatedUrl)
+        Toast.makeText(this, "Server URL saved!", Toast.LENGTH_SHORT).show()
+        startPeriodicTcpPing()
     }
 
     private fun setupEngineModeUI() {
