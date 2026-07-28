@@ -56,7 +56,8 @@ object OnDeviceTranscriber {
                 return@withContext Result.failure(Exception("Could not decode audio samples"))
             }
 
-            val cores = Runtime.getRuntime().availableProcessors().coerceIn(2, 6)
+            // 3 performance cores optimal for Snapdragon 8+ Gen 1 to avoid thread barrier delays on efficiency cores
+            val cores = 3
             val text = WhisperNative.transcribeData(ctxPtr, cores, samples, "auto")
 
             if (text.isNotBlank()) {

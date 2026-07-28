@@ -62,10 +62,12 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_transcribeData(
     params.print_special = false;
     params.translate = false;
     params.language = (lang && strlen(lang) > 0) ? lang : "auto";
-    params.n_threads = num_threads > 0 ? num_threads : 4;
+    params.n_threads = num_threads > 0 ? num_threads : 3;
     params.offset_ms = 0;
     params.no_context = true;
-    params.single_segment = false;
+    params.single_segment = true;
+    params.max_tokens = 128; // Cap max tokens to prevent infinite loops on background noise
+    params.temperature = 0.0f; // Single-pass greedy decoding
 
     whisper_reset_timings(ctx);
 
