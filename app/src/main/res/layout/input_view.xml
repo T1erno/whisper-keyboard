@@ -67,30 +67,26 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif"
-            android:text="Hold to talk"
+            android:text="Hold or tap to talk"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
-        <!-- Cancel Transcription Button -->
-        <com.google.android.material.button.MaterialButton
+        <!-- Cancel Transcription Button (Standard TextView to prevent MaterialComponents theme inflation crashes in IME) -->
+        <TextView
             android:id="@+id/btn_cancel_transcription"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:layout_marginTop="6dp"
+            android:background="@drawable/bg_blue_action_button"
             android:backgroundTint="#DC2626"
             android:fontFamily="sans-serif-medium"
+            android:gravity="center"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:text="Cancel"
+            android:text="✕ Cancel"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:visibility="gone"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_close"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp"
-            app:iconSize="16dp"
-            app:iconTint="#FFFFFF" />
+            android:visibility="gone" />
     </LinearLayout>
 
     <!-- Punctuation Keys (5 clean keys without text labels underneath) -->

@@ -7,7 +7,9 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.inputmethodservice.InputMethodService
+import android.view.ContextThemeWrapper
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageButton
@@ -81,7 +83,8 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
-        val view = layoutInflater.inflate(R.layout.input_view, null)
+        val themedContext = ContextThemeWrapper(this, R.style.Theme_WhisperKeyboard)
+        val view = LayoutInflater.from(themedContext).inflate(R.layout.input_view, null)
 
         tvStatus = view.findViewById(R.id.tv_status)
         tvPrompt = view.findViewById(R.id.tv_prompt)
@@ -90,7 +93,7 @@ class VoiceInputMethodService : InputMethodService() {
         btnCancelTranscription = view.findViewById(R.id.btn_cancel_transcription)
 
         setupMicButton()
-        punctuationKeyManager.setupPunctuationKeys(view, this)
+        punctuationKeyManager.setupPunctuationKeys(view, themedContext)
         setupUtilityButtons(view)
 
         btnCancelTranscription?.setOnClickListener {
