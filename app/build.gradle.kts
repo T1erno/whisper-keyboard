@@ -15,6 +15,28 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags("-std=c++17 -O3")
+                arguments(
+                    "-DWHISPER_BUILD_TESTS=OFF",
+                    "-DWHISPER_BUILD_EXAMPLES=OFF",
+                    "-DBUILD_SHARED_LIBS=OFF"
+                )
+            }
+        }
+
+        ndk {
+            abiFilters.addAll(setOf("arm64-v8a", "x86_64"))
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {

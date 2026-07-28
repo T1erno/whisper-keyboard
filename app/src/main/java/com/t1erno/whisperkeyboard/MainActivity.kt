@@ -11,13 +11,21 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.switchmaterial.SwitchMaterial
+import com.t1erno.whisperkeyboard.nativeengine.ModelManager
+import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.TcpPingHelper
 import com.t1erno.whisperkeyboard.network.TcpPingHelper.toHumanReadablePingError
 import com.t1erno.whisperkeyboard.ui.VibrationHelper
@@ -34,6 +42,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSaveUrl: Button
     private lateinit var switchHaptic: SwitchMaterial
 
+    private lateinit var switchEngineMode: SwitchMaterial
+    private lateinit var tvEngineModeDesc: TextView
+    private lateinit var layoutEdgeSettings: LinearLayout
+
+    private lateinit var rgModels: RadioGroup
+    private lateinit var rbModelLargeTurbo: RadioButton
+    private lateinit var rbModelSmall: RadioButton
+    private lateinit var rbModelTiny: RadioButton
+    private lateinit var tvModelStatus: TextView
+    private lateinit var pbModelDownload: ProgressBar
+    private lateinit var btnDownloadModel: MaterialButton
+
     private lateinit var tvStep1Status: TextView
     private lateinit var btnGrantPermission: Button
 
@@ -44,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSelectKeyboard: Button
 
     private var pingJob: Job? = null
+    private var isDownloading = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -61,6 +82,18 @@ class MainActivity : AppCompatActivity() {
         btnSaveUrl = findViewById(R.id.btn_save_url)
         switchHaptic = findViewById(R.id.switch_haptic)
 
+        switchEngineMode = findViewById(R.id.switch_engine_mode)
+        tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
+        layoutEdgeSettings = findViewById(R.id.layout_edge_settings)
+
+        rgModels = findViewById(R.id.rg_models)
+        rbModelLargeTurbo = findViewById(R.id.rb_model_large_turbo)
+        rbModelSmall = findViewById(R.id.rb_model_small)
+        rbModelTiny = findViewById(R.id.rb_model_tiny)
+        tvModelStatus = findViewById(R.id.tv_model_status)
+        pbModelDownload = findViewById(R.id.pb_model_download)
+        btnDownloadModel = findViewById(R.id.btn_download_model)
+
         tvStep1Status = findViewById(R.id.tv_step1_status)
         btnGrantPermission = findViewById(R.id.btn_grant_permission)
 
@@ -72,6 +105,9 @@ class MainActivity : AppCompatActivity() {
 
         val currentUrl = PreferencesManager.getServerUrl(this)
         etServerUrl.setText(currentUrl)
+
+        setupEngineModeUI()
+        setupModelSelectionUI()
 
         switchHaptic.isChecked = PreferencesManager.isHapticEnabled(this)
         switchHaptic.setOnCheckedChangeListener { _, isChecked ->
@@ -108,10 +144,118 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupEngineModeUI() {
+        val currentMode = PreferencesManager.getEngineMode(this)
+        val isEdge = currentMode == PreferencesManager.EngineMode.EDGE_ON_DEVICE
+        switchEngineMode.isChecked = isEdge
+
+        updateEngineModeViews(isEdge)
+
+        switchEngineMode.setOnCheckedChangeListener { _, isChecked ->
+            val newMode = if (isChecked) PreferencesManager.EngineMode.EDGE_ON_DEVICE else PreferencesManager.EngineMode.REMOTE_SERVER
+            PreferencesManager.setEngineMode(this, newMode)
+            VibrationHelper.vibrateKey(this, 30L)
+            updateEngineModeViews(isChecked)
+        }
+    }
+
+    private fun updateEngineModeViews(isEdge: Boolean) {
+        if (isEdge) {
+            tvEngineModeDesc.text = "Edge / On-Device (Offline whisper.cpp NDK)"
+            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            layoutEdgeSettings.visibility = View.VISIBLE
+            updateModelStatusUI()
+        } else {
+            tvEngineModeDesc.text = "Remote Server (FastAPI / OkHttp)"
+            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            layoutEdgeSettings.visibility = View.GONE
+        }
+    }
+
+    private fun setupModelSelectionUI() {
+        val currentModel = PreferencesManager.getSelectedModelFileName(this)
+        when (currentModel) {
+            ModelManager.MODEL_SMALL.fileName -> rbModelSmall.isChecked = true
+            ModelManager.MODEL_TINY.fileName -> rbModelTiny.isChecked = true
+            else -> rbModelLargeTurbo.isChecked = true
+        }
+
+        rgModels.setOnCheckedChangeListener { _, checkedId ->
+            val selectedModel = when (checkedId) {
+                R.id.rb_model_small -> ModelManager.MODEL_SMALL
+                R.id.rb_model_tiny -> ModelManager.MODEL_TINY
+                else -> ModelManager.MODEL_LARGE_V3_TURBO
+            }
+
+            PreferencesManager.setSelectedModelFileName(this, selectedModel.fileName)
+            OnDeviceTranscriber.releaseContext()
+            updateModelStatusUI()
+        }
+
+        btnDownloadModel.setOnClickListener {
+            if (!isDownloading) {
+                startModelDownload()
+            }
+        }
+    }
+
+    private fun updateModelStatusUI() {
+        val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
+        val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+        val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
+
+        if (isDownloaded) {
+            tvModelStatus.text = "Model ready: ${modelInfo.name} (${modelInfo.fileName})"
+            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            btnDownloadModel.text = "Redownload Model"
+            btnDownloadModel.isEnabled = !isDownloading
+        } else {
+            tvModelStatus.text = "Model missing: ${modelInfo.name}. Tap download below."
+            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnDownloadModel.text = "Download Model (${modelInfo.fileName})"
+            btnDownloadModel.isEnabled = !isDownloading
+        }
+    }
+
+    private fun startModelDownload() {
+        val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
+        val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+
+        isDownloading = true
+        btnDownloadModel.isEnabled = false
+        pbModelDownload.visibility = View.VISIBLE
+        pbModelDownload.progress = 0
+        tvModelStatus.text = "Downloading ${modelInfo.name}..."
+
+        lifecycleScope.launch {
+            val result = ModelManager.downloadModel(this@MainActivity, modelInfo) { percent ->
+                lifecycleScope.launch {
+                    pbModelDownload.progress = percent
+                    tvModelStatus.text = "Downloading ${modelInfo.name}: $percent%"
+                }
+            }
+
+            isDownloading = false
+            pbModelDownload.visibility = View.GONE
+
+            result.fold(
+                onSuccess = { file ->
+                    Toast.makeText(this@MainActivity, "Model downloaded successfully!", Toast.LENGTH_LONG).show()
+                    updateModelStatusUI()
+                },
+                onFailure = { error ->
+                    Toast.makeText(this@MainActivity, "Download failed: ${error.message}", Toast.LENGTH_LONG).show()
+                    updateModelStatusUI()
+                }
+            )
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         checkKeyboardStatus()
         startPeriodicTcpPing()
+        updateModelStatusUI()
     }
 
     override fun onPause() {
@@ -126,7 +270,7 @@ class MainActivity : AppCompatActivity() {
                 val inputUrl = etServerUrl.text.toString().trim()
                 val targetUrl = if (inputUrl.isNotEmpty()) inputUrl else PreferencesManager.getServerUrl(this@MainActivity)
                 runTcpPing(targetUrl)
-                delay(2000L) // Ping every 2 seconds while in config view
+                delay(2000L)
             }
         }
     }
@@ -154,7 +298,6 @@ class MainActivity : AppCompatActivity() {
         val purpleColor = ContextCompat.getColor(this, R.color.accent_purple)
         val defaultBtnColor = ContextCompat.getColor(this, R.color.key_bg)
 
-        // Step 1 Check: Microphone Permission
         val isPermissionGranted = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.RECORD_AUDIO
@@ -172,7 +315,6 @@ class MainActivity : AppCompatActivity() {
             btnGrantPermission.backgroundTintList = ColorStateList.valueOf(purpleColor)
         }
 
-        // Step 2 Check: Keyboard Enabled in System Settings
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val isKeyboardEnabled = imm.enabledInputMethodList.any {
             it.packageName == packageName
@@ -190,7 +332,6 @@ class MainActivity : AppCompatActivity() {
             btnEnableKeyboard.backgroundTintList = ColorStateList.valueOf(defaultBtnColor)
         }
 
-        // Step 3 Check: Selected as Active Default IME
         val currentDefaultIme = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
         val isKeyboardSelected = currentDefaultIme != null && currentDefaultIme.contains(packageName)
 

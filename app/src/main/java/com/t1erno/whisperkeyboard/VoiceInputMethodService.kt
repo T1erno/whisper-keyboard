@@ -19,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.t1erno.whisperkeyboard.audio.AudioRecorderManager
+import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
 import com.t1erno.whisperkeyboard.ui.ProgressiveBackspace
 import com.t1erno.whisperkeyboard.ui.PunctuationKeyManager
@@ -92,7 +93,7 @@ class VoiceInputMethodService : InputMethodService() {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     VibrationHelper.vibrateKey(this, 35L)
-                    playMicBeep() // Sound triggers ONLY on press down
+                    playMicBeep()
                     if (!audioRecorderManager.isRecording && !isTranscribing) {
                         if (hasRecordAudioPermission()) {
                             startRecording()
@@ -105,7 +106,6 @@ class VoiceInputMethodService : InputMethodService() {
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (audioRecorderManager.isRecording && !isTranscribing) {
                         VibrationHelper.vibrateKey(this, 25L)
-                        // No sound on release
                         stopAndTranscribe()
                     }
                     true
@@ -117,7 +117,6 @@ class VoiceInputMethodService : InputMethodService() {
 
     private fun playMicBeep() {
         try {
-            // TONE_PROP_PROMPT produces a crisp, high-quality audio prompt tone
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_PROMPT, 80)
         } catch (_: Exception) {}
     }
@@ -193,7 +192,12 @@ class VoiceInputMethodService : InputMethodService() {
 
             if (recordedFile != null && recordedFile.exists() && recordedFile.length() > 1000) {
                 try {
-                    val result = WhisperApiClient.uploadAudio(applicationContext, recordedFile)
+                    val engineMode = PreferencesManager.getEngineMode(applicationContext)
+                    val result = if (engineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
+                        WhisperApiClient.uploadAudio(applicationContext, recordedFile)
+                    } else {
+                        OnDeviceTranscriber.transcribeAudioFile(applicationContext, recordedFile)
+                    }
 
                     withContext(Dispatchers.Main) {
                         result.fold(
@@ -237,7 +241,9 @@ class VoiceInputMethodService : InputMethodService() {
     private fun updateUiState(state: UiState) {
         when (state) {
             UiState.IDLE -> {
-                tvStatus?.text = "Listening..."
+                val mode = PreferencesManager.getEngineMode(applicationContext)
+                val engineLabel = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) "Server" else "Offline Edge"
+                tvStatus?.text = "Listening ($engineLabel)..."
                 tvPrompt?.text = "Hold to talk"
                 btnMic?.setBackgroundResource(R.drawable.bg_mic_button_idle)
                 progressBar?.visibility = View.GONE
@@ -253,8 +259,10 @@ class VoiceInputMethodService : InputMethodService() {
                 btnMic?.isEnabled = true
             }
             UiState.TRANSCRIBING -> {
-                tvStatus?.text = "Transcribing..."
-                tvPrompt?.text = "Uploading voice message..."
+                val mode = PreferencesManager.getEngineMode(applicationContext)
+                val statusText = if (mode == PreferencesManager.EngineMode.REMOTE_SERVER) "Transcribing (Remote)..." else "Transcribing (Edge NDK)..."
+                tvStatus?.text = statusText
+                tvPrompt?.text = "Processing audio..."
                 progressBar?.visibility = View.VISIBLE
                 btnCancelTranscription?.visibility = View.VISIBLE
                 btnMic?.isEnabled = false
@@ -290,6 +298,7 @@ class VoiceInputMethodService : InputMethodService() {
         progressiveBackspace.stop()
         transcriptionJob?.cancel()
         audioRecorderManager.releaseRecorder()
+        OnDeviceTranscriber.releaseContext()
         try {
             toneGenerator?.release()
         } catch (_: Exception) {}
