@@ -14,7 +14,8 @@ else()
     add_compile_options(-O3 -flto -fno-finite-math-only)
 endif()
 
-set(GGML_OPENMP ON CACHE BOOL "" FORCE)
+# Use native std::thread (pthreads) to avoid non-aligned prebuilt NDK libomp.so
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
