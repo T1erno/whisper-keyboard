@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.provider.Settings
+import android.text.method.ScrollingMovementMethod
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -67,6 +69,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStep3Status: TextView
     private lateinit var btnSelectKeyboard: Button
 
+    private lateinit var etTestInput: EditText
+
     private var pingJob: Job? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -109,6 +113,9 @@ class MainActivity : AppCompatActivity() {
         tvStep3Status = findViewById(R.id.tv_step3_status)
         btnSelectKeyboard = findViewById(R.id.btn_select_keyboard)
 
+        etTestInput = findViewById(R.id.et_test_input)
+        setupTestInputScrolling()
+
         val currentUrl = PreferencesManager.getServerUrl(this)
         etServerUrl.setText(currentUrl)
 
@@ -147,6 +154,19 @@ class MainActivity : AppCompatActivity() {
         btnSelectKeyboard.setOnClickListener {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showInputMethodPicker()
+        }
+    }
+
+    private fun setupTestInputScrolling() {
+        etTestInput.movementMethod = ScrollingMovementMethod()
+        etTestInput.setOnTouchListener { v, event ->
+            if (v.hasFocus()) {
+                v.parent.requestDisallowInterceptTouchEvent(true)
+                when (event.action and MotionEvent.ACTION_MASK) {
+                    MotionEvent.ACTION_UP -> v.parent.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            false
         }
     }
 
