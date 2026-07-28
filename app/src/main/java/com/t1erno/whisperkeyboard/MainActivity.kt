@@ -47,9 +47,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutEdgeSettings: LinearLayout
 
     private lateinit var rgModels: RadioGroup
+    private lateinit var rbModelLargeV3: RadioButton
     private lateinit var rbModelLargeTurbo: RadioButton
+    private lateinit var rbModelMedium: RadioButton
     private lateinit var rbModelSmall: RadioButton
+    private lateinit var rbModelBase: RadioButton
     private lateinit var rbModelTiny: RadioButton
+
     private lateinit var tvModelStatus: TextView
     private lateinit var pbModelDownload: ProgressBar
     private lateinit var btnDownloadModel: MaterialButton
@@ -87,9 +91,13 @@ class MainActivity : AppCompatActivity() {
         layoutEdgeSettings = findViewById(R.id.layout_edge_settings)
 
         rgModels = findViewById(R.id.rg_models)
+        rbModelLargeV3 = findViewById(R.id.rb_model_large_v3)
         rbModelLargeTurbo = findViewById(R.id.rb_model_large_turbo)
+        rbModelMedium = findViewById(R.id.rb_model_medium)
         rbModelSmall = findViewById(R.id.rb_model_small)
+        rbModelBase = findViewById(R.id.rb_model_base)
         rbModelTiny = findViewById(R.id.rb_model_tiny)
+
         tvModelStatus = findViewById(R.id.tv_model_status)
         pbModelDownload = findViewById(R.id.pb_model_download)
         btnDownloadModel = findViewById(R.id.btn_download_model)
@@ -175,14 +183,20 @@ class MainActivity : AppCompatActivity() {
     private fun setupModelSelectionUI() {
         val currentModel = PreferencesManager.getSelectedModelFileName(this)
         when (currentModel) {
+            ModelManager.MODEL_LARGE_V3.fileName -> rbModelLargeV3.isChecked = true
+            ModelManager.MODEL_MEDIUM.fileName -> rbModelMedium.isChecked = true
             ModelManager.MODEL_SMALL.fileName -> rbModelSmall.isChecked = true
+            ModelManager.MODEL_BASE.fileName -> rbModelBase.isChecked = true
             ModelManager.MODEL_TINY.fileName -> rbModelTiny.isChecked = true
             else -> rbModelLargeTurbo.isChecked = true
         }
 
         rgModels.setOnCheckedChangeListener { _, checkedId ->
             val selectedModel = when (checkedId) {
+                R.id.rb_model_large_v3 -> ModelManager.MODEL_LARGE_V3
+                R.id.rb_model_medium -> ModelManager.MODEL_MEDIUM
                 R.id.rb_model_small -> ModelManager.MODEL_SMALL
+                R.id.rb_model_base -> ModelManager.MODEL_BASE
                 R.id.rb_model_tiny -> ModelManager.MODEL_TINY
                 else -> ModelManager.MODEL_LARGE_V3_TURBO
             }
@@ -205,14 +219,14 @@ class MainActivity : AppCompatActivity() {
         val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
 
         if (isDownloaded) {
-            tvModelStatus.text = "Model ready: ${modelInfo.name} (${modelInfo.fileName})"
+            tvModelStatus.text = "✓ Model ready: ${modelInfo.name}"
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-            btnDownloadModel.text = "Redownload Model"
-            btnDownloadModel.isEnabled = !isDownloading
+            btnDownloadModel.visibility = View.GONE
         } else {
             tvModelStatus.text = "Model missing: ${modelInfo.name}. Tap download below."
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            btnDownloadModel.text = "Download Model (${modelInfo.fileName})"
+            btnDownloadModel.text = "Download ${modelInfo.name}"
+            btnDownloadModel.visibility = View.VISIBLE
             btnDownloadModel.isEnabled = !isDownloading
         }
     }
@@ -239,7 +253,7 @@ class MainActivity : AppCompatActivity() {
             pbModelDownload.visibility = View.GONE
 
             result.fold(
-                onSuccess = { file ->
+                onSuccess = { _ ->
                     Toast.makeText(this@MainActivity, "Model downloaded successfully!", Toast.LENGTH_LONG).show()
                     updateModelStatusUI()
                 },

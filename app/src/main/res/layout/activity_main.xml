@@ -121,6 +121,14 @@
                         android:orientation="vertical">
 
                         <RadioButton
+                            android:id="@+id/rb_model_large_v3"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Large v3 (q5_0) • 1.0 GB (Max Precision)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <RadioButton
                             android:id="@+id/rb_model_large_turbo"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -129,10 +137,26 @@
                             android:textSize="13sp" />
 
                         <RadioButton
+                            android:id="@+id/rb_model_medium"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Medium (q5_0) • 515 MB (High Accuracy)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <RadioButton
                             android:id="@+id/rb_model_small"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Small (q5_0) • 182 MB (Low RAM)"
+                            android:text="Small (q5_0) • 182 MB (Balanced Speed)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <RadioButton
+                            android:id="@+id/rb_model_base"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Base (q5_0) • 57 MB (Lightweight)"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 

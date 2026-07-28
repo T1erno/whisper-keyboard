@@ -17,11 +17,25 @@ object ModelManager {
         val description: String
     )
 
+    val MODEL_LARGE_V3 = ModelInfo(
+        name = "Large v3 (q5_0)",
+        fileName = "ggml-large-v3-q5_0.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin",
+        description = "Maximum precision (1.0 GB)"
+    )
+
     val MODEL_LARGE_V3_TURBO = ModelInfo(
         name = "Large v3 Turbo (q5_0)",
         fileName = "ggml-large-v3-turbo-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
-        description = "High precision quantized (547 MB)"
+        description = "Recommended • Fast & High Precision (547 MB)"
+    )
+
+    val MODEL_MEDIUM = ModelInfo(
+        name = "Medium (q5_0)",
+        fileName = "ggml-medium-q5_0.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
+        description = "High accuracy (515 MB)"
     )
 
     val MODEL_SMALL = ModelInfo(
@@ -29,6 +43,13 @@ object ModelManager {
         fileName = "ggml-small-q5_0.bin",
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_0.bin",
         description = "Balanced speed & memory (182 MB)"
+    )
+
+    val MODEL_BASE = ModelInfo(
+        name = "Base (q5_0)",
+        fileName = "ggml-base-q5_0.bin",
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_0.bin",
+        description = "Lightweight (57 MB)"
     )
 
     val MODEL_TINY = ModelInfo(
@@ -39,8 +60,11 @@ object ModelManager {
     )
 
     val AVAILABLE_MODELS = listOf(
+        MODEL_LARGE_V3,
         MODEL_LARGE_V3_TURBO,
+        MODEL_MEDIUM,
         MODEL_SMALL,
+        MODEL_BASE,
         MODEL_TINY
     )
 
@@ -61,7 +85,7 @@ object ModelManager {
 
     fun isModelDownloaded(context: Context, fileName: String): Boolean {
         val file = getModelFile(context, fileName)
-        return file.exists() && file.length() > 1000000L // Ensure file is not empty or corrupt
+        return file.exists() && file.length() > 5000000L // Ensure file is not empty or truncated
     }
 
     fun getModelInfoByFileName(fileName: String): ModelInfo {
