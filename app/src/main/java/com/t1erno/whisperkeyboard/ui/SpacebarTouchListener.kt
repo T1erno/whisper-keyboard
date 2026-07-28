@@ -14,6 +14,7 @@ class SpacebarTouchListener(
     private var initialX = 0f
     private var initialY = 0f
     private var lastStepX = 0f
+    private var lastStepY = 0f
     private var isSwiping = false
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -22,6 +23,7 @@ class SpacebarTouchListener(
                 initialX = event.rawX
                 initialY = event.rawY
                 lastStepX = event.rawX
+                lastStepY = event.rawY
                 isSwiping = false
                 v.isPressed = true
                 return true
@@ -31,14 +33,17 @@ class SpacebarTouchListener(
                 val totalDeltaX = event.rawX - initialX
                 val totalDeltaY = event.rawY - initialY
 
-                if (!isSwiping && abs(totalDeltaX) > SWIPE_ACTIVATION_THRESHOLD_PX && abs(totalDeltaX) > abs(totalDeltaY)) {
+                if (!isSwiping && (abs(totalDeltaX) > SWIPE_ACTIVATION_THRESHOLD_PX || abs(totalDeltaY) > SWIPE_ACTIVATION_THRESHOLD_PX)) {
                     isSwiping = true
                 }
 
                 if (isSwiping) {
                     val stepDeltaX = event.rawX - lastStepX
-                    if (abs(stepDeltaX) >= STEP_DISTANCE_PX) {
-                        val ic = inputConnectionProvider()
+                    val stepDeltaY = event.rawY - lastStepY
+                    val ic = inputConnectionProvider()
+
+                    // Horizontal cursor movement (Left / Right)
+                    if (abs(stepDeltaX) >= STEP_DISTANCE_HORIZONTAL_PX) {
                         if (ic != null) {
                             val keycode = if (stepDeltaX > 0) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
                             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
@@ -46,6 +51,17 @@ class SpacebarTouchListener(
                             VibrationHelper.vibrateKey(v.context, 12L)
                         }
                         lastStepX = event.rawX
+                    }
+
+                    // Vertical cursor movement (Up / Down across lines)
+                    if (abs(stepDeltaY) >= STEP_DISTANCE_VERTICAL_PX) {
+                        if (ic != null) {
+                            val keycode = if (stepDeltaY > 0) KeyEvent.KEYCODE_DPAD_DOWN else KeyEvent.KEYCODE_DPAD_UP
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
+                            VibrationHelper.vibrateKey(v.context, 12L)
+                        }
+                        lastStepY = event.rawY
                     }
                 }
                 return true
@@ -64,7 +80,8 @@ class SpacebarTouchListener(
     }
 
     companion object {
-        private const val SWIPE_ACTIVATION_THRESHOLD_PX = 20f
-        private const val STEP_DISTANCE_PX = 18f
+        private const val SWIPE_ACTIVATION_THRESHOLD_PX = 16f
+        private const val STEP_DISTANCE_HORIZONTAL_PX = 18f
+        private const val STEP_DISTANCE_VERTICAL_PX = 22f
     }
 }
