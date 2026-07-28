@@ -26,6 +26,7 @@ class SpacebarTouchListener(
                 lastStepY = event.rawY
                 isSwiping = false
                 v.isPressed = true
+                v.parent?.requestDisallowInterceptTouchEvent(true)
                 return true
             }
 
@@ -38,6 +39,8 @@ class SpacebarTouchListener(
                 }
 
                 if (isSwiping) {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+
                     val stepDeltaX = event.rawX - lastStepX
                     val stepDeltaY = event.rawY - lastStepY
                     val ic = inputConnectionProvider()
@@ -68,6 +71,7 @@ class SpacebarTouchListener(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                v.parent?.requestDisallowInterceptTouchEvent(false)
                 v.isPressed = false
                 if (!isSwiping && event.actionMasked == MotionEvent.ACTION_UP) {
                     onSpaceClick()
