@@ -117,10 +117,9 @@ object ModelManager {
         return AVAILABLE_MODELS.find { it.fileName == fileName } ?: MODEL_LARGE_V3_TURBO
     }
 
-    suspend fun downloadModelParallel(
+    suspend fun downloadModel(
         context: Context,
         modelInfo: ModelInfo,
-        numThreads: Int = 4,
         onProgress: (percent: Int) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
         val targetFile = getModelFile(context, modelInfo.fileName)
@@ -130,108 +129,22 @@ object ModelManager {
             activeDownloads[modelInfo.fileName] = 0
             onProgress(0)
 
-            val headRequest = Request.Builder().url(modelInfo.url).head().build()
-            val headResponse = httpClient.newCall(headRequest).execute()
-            val totalBytes = headResponse.body?.contentLength() ?: -1L
-            val acceptsRanges = headResponse.header("Accept-Ranges")?.equals("bytes", ignoreCase = true) == true || totalBytes > 10_000_000L
-            headResponse.close()
-
-            if (totalBytes <= 0L || !acceptsRanges || numThreads <= 1) {
-                return@withContext downloadSingleStream(context, modelInfo, onProgress)
-            }
-
-            RandomAccessFile(tempFile, "rw").use { raf ->
-                raf.setLength(totalBytes)
-            }
-
-            val chunkSize = totalBytes / numThreads
-            val totalDownloadedBytes = AtomicLong(0L)
-
-            val deferreds = (0 until numThreads).map { threadIdx ->
-                async(Dispatchers.IO) {
-                    val startByte = threadIdx * chunkSize
-                    val endByte = if (threadIdx == numThreads - 1) totalBytes - 1 else (startByte + chunkSize - 1)
-
-                    val rangeRequest = Request.Builder()
-                        .url(modelInfo.url)
-                        .addHeader("Range", "bytes=$startByte-$endByte")
-                        .build()
-
-                    val response = httpClient.newCall(rangeRequest).execute()
-                    if (!response.isSuccessful && response.code != 206) {
-                        response.close()
-                        throw Exception("Chunk $threadIdx failed with HTTP ${response.code}")
-                    }
-
-                    val body = response.body ?: throw Exception("Chunk $threadIdx empty body")
-                    val buffer = ByteArray(16384)
-
-                    RandomAccessFile(tempFile, "rw").use { raf ->
-                        raf.seek(startByte)
-                        body.byteStream().use { input ->
-                            var read: Int
-                            while (input.read(buffer).also { read = it } != -1) {
-                                raf.write(buffer, 0, read)
-                                val currentTotal = totalDownloadedBytes.addAndGet(read.toLong())
-                                val percent = ((currentTotal * 100) / totalBytes).toInt().coerceIn(0, 100)
-
-                                activeDownloads[modelInfo.fileName] = percent
-                                onProgress(percent)
-                            }
-                        }
-                    }
-                    response.close()
-                }
-            }
-
-            deferreds.awaitAll()
-
-            if (tempFile.exists() && tempFile.length() == totalBytes) {
-                if (targetFile.exists()) {
-                    targetFile.delete()
-                }
-                tempFile.renameTo(targetFile)
-                activeDownloads.remove(modelInfo.fileName)
-                onProgress(100)
-                Result.success(targetFile)
-            } else {
-                activeDownloads.remove(modelInfo.fileName)
-                Result.failure(Exception("Incomplete download verification"))
-            }
-        } catch (e: Exception) {
-            activeDownloads.remove(modelInfo.fileName)
-            if (tempFile.exists()) {
-                tempFile.delete()
-            }
-            Result.failure(e)
-        }
-    }
-
-    private fun downloadSingleStream(
-        context: Context,
-        modelInfo: ModelInfo,
-        onProgress: (percent: Int) -> Unit
-    ): Result<File> {
-        val targetFile = getModelFile(context, modelInfo.fileName)
-        val tempFile = File(targetFile.parentFile, "${modelInfo.fileName}.tmp")
-
-        return try {
             val request = Request.Builder().url(modelInfo.url).build()
             val response = httpClient.newCall(request).execute()
             if (!response.isSuccessful) {
                 activeDownloads.remove(modelInfo.fileName)
-                return Result.failure(Exception("HTTP ${response.code}: Download failed"))
+                return@withContext Result.failure(Exception("HTTP ${response.code}: Download failed"))
             }
 
             val body = response.body ?: run {
                 activeDownloads.remove(modelInfo.fileName)
-                return Result.failure(Exception("Empty body response"))
+                return@withContext Result.failure(Exception("Empty body response"))
             }
             val totalBytes = body.contentLength()
 
             body.byteStream().use { input ->
                 FileOutputStream(tempFile).use { output ->
-                    val buffer = ByteArray(16384)
+                    val buffer = ByteArray(32768)
                     var bytesRead: Int
                     var totalRead = 0L
                     var lastPercent = -1
@@ -241,7 +154,7 @@ object ModelManager {
                         totalRead += bytesRead
 
                         if (totalBytes > 0) {
-                            val percent = ((totalRead * 100) / totalBytes).toInt()
+                            val percent = ((totalRead * 100) / totalBytes).toInt().coerceIn(0, 100)
                             if (percent != lastPercent) {
                                 lastPercent = percent
                                 activeDownloads[modelInfo.fileName] = percent

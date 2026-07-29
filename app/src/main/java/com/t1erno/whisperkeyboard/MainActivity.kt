@@ -259,7 +259,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnDownloadModel.setOnClickListener {
-            startParallelModelDownload()
+            startModelDownload()
         }
     }
 
@@ -270,6 +270,28 @@ class MainActivity : AppCompatActivity() {
         val isDownloading = ModelManager.isModelDownloading(selectedFileName)
         val progress = ModelManager.getDownloadProgress(selectedFileName)
         val currentEngineMode = PreferencesManager.getEngineMode(this)
+
+        val modelsMap = listOf(
+            rbModelLargeV3 to ModelManager.MODEL_LARGE_V3,
+            rbModelLargeTurbo to ModelManager.MODEL_LARGE_V3_TURBO,
+            rbModelMedium to ModelManager.MODEL_MEDIUM,
+            rbModelSmall to ModelManager.MODEL_SMALL,
+            rbModelBase to ModelManager.MODEL_BASE,
+            rbModelTiny to ModelManager.MODEL_TINY
+        )
+
+        for ((rb, model) in modelsMap) {
+            val downloaded = ModelManager.isModelDownloaded(this, model.fileName)
+            val downloading = ModelManager.isModelDownloading(model.fileName)
+            val prog = ModelManager.getDownloadProgress(model.fileName)
+
+            val statusTag = when {
+                downloaded -> " ✓"
+                downloading -> " (Downloading ${prog ?: 0}%)"
+                else -> ""
+            }
+            rb.text = "${model.name} • ${model.description}$statusTag"
+        }
 
         if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
             tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')"
@@ -284,17 +306,17 @@ class MainActivity : AppCompatActivity() {
                 btnDownloadModel.visibility = View.GONE
                 pbModelDownload.visibility = View.GONE
             } else if (isDownloading) {
-                tvModelStatus.text = "Downloading ${modelInfo.name} (Parallel 4-Stream)... ${progress ?: 0}%"
+                tvModelStatus.text = "Downloading ${modelInfo.name}... ${progress ?: 0}%"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
                 btnDownloadModel.visibility = View.VISIBLE
                 btnDownloadModel.isEnabled = false
-                btnDownloadModel.text = "Downloading..."
+                btnDownloadModel.text = "Downloading ${modelInfo.name.uppercase()} (${progress ?: 0}%)"
                 pbModelDownload.visibility = View.VISIBLE
                 pbModelDownload.progress = progress ?: 0
             } else {
                 tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-                btnDownloadModel.text = "Download ${modelInfo.name} (Parallel 4-Stream)"
+                btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
                 btnDownloadModel.visibility = View.VISIBLE
                 btnDownloadModel.isEnabled = true
                 pbModelDownload.visibility = View.GONE
@@ -302,7 +324,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startParallelModelDownload() {
+    private fun startModelDownload() {
         val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
 
@@ -311,16 +333,12 @@ class MainActivity : AppCompatActivity() {
         updateModelStatusUI()
 
         lifecycleScope.launch {
-            val result = ModelManager.downloadModelParallel(
+            val result = ModelManager.downloadModel(
                 context = this@MainActivity,
-                modelInfo = modelInfo,
-                numThreads = 4
+                modelInfo = modelInfo
             ) { _ ->
                 lifecycleScope.launch {
-                    val currentSelected = PreferencesManager.getSelectedModelFileName(this@MainActivity)
-                    if (currentSelected == modelInfo.fileName) {
-                        updateModelStatusUI()
-                    }
+                    updateModelStatusUI()
                 }
             }
 
