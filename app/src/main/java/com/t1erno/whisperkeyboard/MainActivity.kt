@@ -31,6 +31,7 @@ import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.TcpPingHelper
 import com.t1erno.whisperkeyboard.network.TcpPingHelper.toHumanReadablePingError
+import com.t1erno.whisperkeyboard.network.WhisperApiClient
 import com.t1erno.whisperkeyboard.ui.VibrationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -193,6 +194,15 @@ class MainActivity : AppCompatActivity() {
         etServerUrl.setText(updatedUrl)
         Toast.makeText(this, "Server URL saved!", Toast.LENGTH_SHORT).show()
         startPeriodicTcpPing()
+        fetchRemoteServerModels()
+    }
+
+    private fun fetchRemoteServerModels() {
+        if (PreferencesManager.getEngineMode(this) != PreferencesManager.EngineMode.REMOTE_SERVER) return
+        lifecycleScope.launch {
+            WhisperApiClient.fetchServerModels(this@MainActivity)
+            updateModelStatusUI()
+        }
     }
 
     private fun setupEngineModeUI() {
@@ -237,6 +247,7 @@ class MainActivity : AppCompatActivity() {
             btnSaveUrl.isEnabled = true
             cardRemoteSettings.alpha = 1.0f
             startPeriodicTcpPing()
+            fetchRemoteServerModels()
         }
         updateModelStatusUI()
     }
@@ -294,8 +305,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')"
-            tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            val serverAvailability = WhisperApiClient.isModelAvailableOnServer(modelInfo.serverKey)
+            when (serverAvailability) {
+                true -> {
+                    tvModelStatus.text = "✓ Server Ready: ${modelInfo.name}"
+                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+                }
+                false -> {
+                    tvModelStatus.text = "⚠️ Model not loaded on server (${modelInfo.name})"
+                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                }
+                null -> {
+                    tvModelStatus.text = "Remote Server model: ${modelInfo.name}"
+                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                }
+            }
             btnDownloadModel.visibility = View.GONE
         } else {
             // Edge On-Device Mode
@@ -381,6 +405,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         checkKeyboardStatus()
         startPeriodicTcpPing()
+        fetchRemoteServerModels()
         updateModelStatusUI()
     }
 
