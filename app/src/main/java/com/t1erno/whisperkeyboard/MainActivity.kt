@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var etServerUrl: EditText
+    private lateinit var cardRemoteSettings: MaterialCardView
     private lateinit var vStatusDot: View
     private lateinit var tvPingInfo: TextView
     private lateinit var btnSaveUrl: Button
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         etServerUrl = findViewById(R.id.et_server_url)
+        cardRemoteSettings = findViewById(R.id.card_remote_settings)
         vStatusDot = findViewById(R.id.v_status_dot)
         tvPingInfo = findViewById(R.id.tv_ping_info)
         btnSaveUrl = findViewById(R.id.btn_save_url)
@@ -209,11 +211,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateEngineModeViews(isEdge: Boolean) {
         if (isEdge) {
-            tvEngineModeDesc.text = "Edge / On-Device (Offline whisper.cpp NDK)"
+            tvEngineModeDesc.text = "Edge On-Device (Offline whisper.cpp NDK)"
             tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+
+            // Disable & Grey out Remote Server settings
+            etServerUrl.isEnabled = false
+            btnSaveUrl.isEnabled = false
+            cardRemoteSettings.alpha = 0.5f
+            startPeriodicTcpPing()
         } else {
-            tvEngineModeDesc.text = "Remote Server (FastAPI / OkHttp)"
+            tvEngineModeDesc.text = "Remote Server"
             tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+
+            // Enable & Restore Remote Server settings
+            etServerUrl.isEnabled = true
+            btnSaveUrl.isEnabled = true
+            cardRemoteSettings.alpha = 1.0f
+            startPeriodicTcpPing()
         }
         updateModelStatusUI()
     }
@@ -263,7 +277,7 @@ class MainActivity : AppCompatActivity() {
             btnDownloadModel.visibility = View.GONE
             pbModelDownload.visibility = View.GONE
         } else {
-            // Edge / On-Device Mode
+            // Edge On-Device Mode
             if (isDownloaded) {
                 tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
@@ -337,6 +351,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPeriodicTcpPing() {
         stopPeriodicTcpPing()
+
+        // Only ping if in Remote Server mode
+        if (PreferencesManager.getEngineMode(this) == PreferencesManager.EngineMode.EDGE_ON_DEVICE) {
+            vStatusDot.setBackgroundResource(R.drawable.bg_status_dot_checking)
+            tvPingInfo.text = "Ping disabled (Edge Mode Active)"
+            return
+        }
+
+        vStatusDot.setBackgroundResource(R.drawable.bg_status_dot_checking)
+        tvPingInfo.text = "Checking connection..."
+
         pingJob = lifecycleScope.launch {
             while (isActive) {
                 val inputUrl = etServerUrl.text.toString().trim()
