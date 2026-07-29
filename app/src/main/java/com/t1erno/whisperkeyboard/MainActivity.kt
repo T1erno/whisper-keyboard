@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbModelTiny: RadioButton
 
     private lateinit var tvModelStatus: TextView
-    private lateinit var pbModelDownload: ProgressBar
+    private lateinit var layoutActiveDownloads: LinearLayout
     private lateinit var btnDownloadModel: MaterialButton
 
     private lateinit var tvStep1Status: TextView
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         rbModelTiny = findViewById(R.id.rb_model_tiny)
 
         tvModelStatus = findViewById(R.id.tv_model_status)
-        pbModelDownload = findViewById(R.id.pb_model_download)
+        layoutActiveDownloads = findViewById(R.id.layout_active_downloads)
         btnDownloadModel = findViewById(R.id.btn_download_model)
 
         tvStep1Status = findViewById(R.id.tv_step1_status)
@@ -281,50 +281,58 @@ class MainActivity : AppCompatActivity() {
         )
 
         for ((rb, model) in modelsMap) {
-            val downloaded = ModelManager.isModelDownloaded(this, model.fileName)
-            val downloading = ModelManager.isModelDownloading(model.fileName)
-            val prog = ModelManager.getDownloadProgress(model.fileName)
-
-            val statusTag = when {
-                downloaded -> " ✓"
-                downloading -> " (Downloading ${prog ?: 0}%)"
-                else -> ""
-            }
-            rb.text = "${model.name} • ${model.description}$statusTag"
+            rb.text = "${model.name} • ${model.description}"
         }
 
-        val totalActiveDownloads = ModelManager.getActiveDownloadCount()
-        val bgNotice = if (totalActiveDownloads > 0 && !isDownloading) {
-            " • ($totalActiveDownloads background download${if (totalActiveDownloads > 1) "s" else ""} in progress)"
-        } else ""
-
         if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')$bgNotice"
+            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')"
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
-            pbModelDownload.visibility = View.GONE
         } else {
             // Edge On-Device Mode
             if (isDownloaded) {
-                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}$bgNotice"
+                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
                 btnDownloadModel.visibility = View.GONE
-                pbModelDownload.visibility = View.GONE
             } else if (isDownloading) {
                 tvModelStatus.text = "Downloading ${modelInfo.name}... ${progress ?: 0}%"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
                 btnDownloadModel.visibility = View.VISIBLE
                 btnDownloadModel.isEnabled = false
-                btnDownloadModel.text = "Downloading ${modelInfo.name.uppercase()} (${progress ?: 0}%)"
-                pbModelDownload.visibility = View.VISIBLE
-                pbModelDownload.progress = progress ?: 0
+                btnDownloadModel.text = "DOWNLOADING ${modelInfo.name.uppercase()}..."
             } else {
-                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below.$bgNotice"
+                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
                 btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
                 btnDownloadModel.visibility = View.VISIBLE
                 btnDownloadModel.isEnabled = true
-                pbModelDownload.visibility = View.GONE
+            }
+        }
+
+        // Dynamically render a progress bar for each active download
+        layoutActiveDownloads.removeAllViews()
+        for (model in ModelManager.AVAILABLE_MODELS) {
+            if (ModelManager.isModelDownloading(model.fileName)) {
+                val prog = ModelManager.getDownloadProgress(model.fileName) ?: 0
+
+                val label = TextView(this).apply {
+                    text = "Downloading ${model.name}... $prog%"
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+                    textSize = 12f
+                    setPadding(0, 8, 0, 4)
+                }
+
+                val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                    max = 100
+                    setProgress(prog)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                }
+
+                layoutActiveDownloads.addView(label)
+                layoutActiveDownloads.addView(pb)
             }
         }
     }
