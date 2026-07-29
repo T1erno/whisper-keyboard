@@ -113,6 +113,10 @@ object ModelManager {
         return activeDownloads.containsKey(fileName)
     }
 
+    fun getActiveDownloadCount(): Int {
+        return activeDownloads.size
+    }
+
     fun getModelInfoByFileName(fileName: String): ModelInfo {
         return AVAILABLE_MODELS.find { it.fileName == fileName } ?: MODEL_LARGE_V3_TURBO
     }

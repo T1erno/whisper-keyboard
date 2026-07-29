@@ -293,15 +293,20 @@ class MainActivity : AppCompatActivity() {
             rb.text = "${model.name} • ${model.description}$statusTag"
         }
 
+        val totalActiveDownloads = ModelManager.getActiveDownloadCount()
+        val bgNotice = if (totalActiveDownloads > 0 && !isDownloading) {
+            " • ($totalActiveDownloads background download${if (totalActiveDownloads > 1) "s" else ""} in progress)"
+        } else ""
+
         if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')"
+            tvModelStatus.text = "✓ Active for Remote Server: ${modelInfo.name} (key: '${modelInfo.serverKey}')$bgNotice"
             tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
             pbModelDownload.visibility = View.GONE
         } else {
             // Edge On-Device Mode
             if (isDownloaded) {
-                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}"
+                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}$bgNotice"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
                 btnDownloadModel.visibility = View.GONE
                 pbModelDownload.visibility = View.GONE
@@ -314,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                 pbModelDownload.visibility = View.VISIBLE
                 pbModelDownload.progress = progress ?: 0
             } else {
-                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
+                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below.$bgNotice"
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
                 btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
                 btnDownloadModel.visibility = View.VISIBLE
