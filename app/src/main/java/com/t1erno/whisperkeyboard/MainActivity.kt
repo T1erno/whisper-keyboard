@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -45,7 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSaveUrl: Button
     private lateinit var switchHaptic: SwitchMaterial
 
-    private lateinit var switchEngineMode: SwitchMaterial
+    private lateinit var toggleEngineMode: MaterialButtonToggleGroup
     private lateinit var tvEngineModeDesc: TextView
 
     private lateinit var rgModels: RadioGroup
@@ -90,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         btnSaveUrl = findViewById(R.id.btn_save_url)
         switchHaptic = findViewById(R.id.switch_haptic)
 
-        switchEngineMode = findViewById(R.id.switch_engine_mode)
+        toggleEngineMode = findViewById(R.id.toggle_engine_mode)
         tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
 
         rgModels = findViewById(R.id.rg_models)
@@ -197,22 +198,30 @@ class MainActivity : AppCompatActivity() {
     private fun setupEngineModeUI() {
         val currentMode = PreferencesManager.getEngineMode(this)
         val isEdge = currentMode == PreferencesManager.EngineMode.EDGE_ON_DEVICE
-        switchEngineMode.isChecked = isEdge
+
+        if (isEdge) {
+            toggleEngineMode.check(R.id.btn_mode_edge)
+        } else {
+            toggleEngineMode.check(R.id.btn_mode_remote)
+        }
 
         updateEngineModeViews(isEdge)
 
-        switchEngineMode.setOnCheckedChangeListener { _, isChecked ->
-            val newMode = if (isChecked) PreferencesManager.EngineMode.EDGE_ON_DEVICE else PreferencesManager.EngineMode.REMOTE_SERVER
-            PreferencesManager.setEngineMode(this, newMode)
-            VibrationHelper.vibrateKey(this, 30L)
-            updateEngineModeViews(isChecked)
+        toggleEngineMode.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val isEdgeSelected = (checkedId == R.id.btn_mode_edge)
+                val newMode = if (isEdgeSelected) PreferencesManager.EngineMode.EDGE_ON_DEVICE else PreferencesManager.EngineMode.REMOTE_SERVER
+                PreferencesManager.setEngineMode(this, newMode)
+                VibrationHelper.vibrateKey(this, 30L)
+                updateEngineModeViews(isEdgeSelected)
+            }
         }
     }
 
     private fun updateEngineModeViews(isEdge: Boolean) {
         if (isEdge) {
-            tvEngineModeDesc.text = "Edge On-Device (Offline whisper.cpp NDK)"
-            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            tvEngineModeDesc.text = "Transcribes 100% offline on-device via whisper.cpp NDK"
+            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
 
             // Disable & Grey out Remote Server settings
             etServerUrl.isEnabled = false
@@ -220,8 +229,8 @@ class MainActivity : AppCompatActivity() {
             cardRemoteSettings.alpha = 0.5f
             startPeriodicTcpPing()
         } else {
-            tvEngineModeDesc.text = "Remote Server"
-            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            tvEngineModeDesc.text = "Transcribes online via your self-hosted Whisper API server"
+            tvEngineModeDesc.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
 
             // Enable & Restore Remote Server settings
             etServerUrl.isEnabled = true

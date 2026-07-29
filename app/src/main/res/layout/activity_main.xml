@@ -32,6 +32,7 @@
             android:textSize="20sp" />
 
         <!-- Engine Execution Mode Card -->
+        <!-- Engine Execution Mode Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -41,49 +42,63 @@
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
 
-            <RelativeLayout
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:padding="16dp">
 
-                <LinearLayout
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:layout_toStartOf="@id/switch_engine_mode"
-                    android:orientation="vertical">
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Engine Execution Mode"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                <TextView
+                    android:id="@+id/tv_engine_mode_desc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Transcribes online via your self-hosted Whisper API server"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggle_engine_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_mode_remote"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="Engine Execution Mode"
+                        android:layout_weight="1"
+                        android:text="Remote Server"
+                        android:textAllCaps="false"
                         android:textColor="@color/text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="13sp"
+                        app:strokeColor="@color/accent_purple" />
 
-                    <TextView
-                        android:id="@+id/tv_engine_mode_desc"
-                        android:layout_width="wrap_content"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_mode_edge"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif"
-                        android:text="Remote Server (OkHttp)"
-                        android:textColor="@color/accent_purple"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switch_engine_mode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:checked="false"
-                    android:textOff=""
-                    android:textOn=""
-                    app:useMaterialThemeColors="true" />
-            </RelativeLayout>
+                        android:layout_weight="1"
+                        android:text="Offline Edge"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        app:strokeColor="@color/accent_purple" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Remote Server Config Card (Placed ABOVE Model Selection Box) -->
