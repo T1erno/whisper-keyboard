@@ -71,11 +71,79 @@ object WhisperApiClient {
                     Result.failure(Exception("Empty transcription"))
                 }
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "HTTP ${response.code()}"
-                Result.failure(Exception("Server error: $errorMsg"))
+                val errorMsg = parseErrorMessage(response)
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private fun parseErrorMessage(response: retrofit2.Response<*>): String {
+        val code = response.code()
+        val rawMessage = response.message()
+        val rawBody = try {
+            response.errorBody()?.string()?.trim()
+        } catch (_: Exception) {
+            null
+        }
+
+        // 1. Try parsing JSON error body if present (e.g. {"detail": "...", "error": "...", "message": "..."})
+        if (!rawBody.isNullOrEmpty() && (rawBody.startsWith("{") || rawBody.startsWith("["))) {
+            try {
+                val json = org.json.JSONObject(rawBody)
+                val detail = json.optString("detail", json.optString("error", json.optString("message", "")))
+                if (detail.isNotEmpty()) {
+                    return "HTTP $code: $detail"
+                }
+            } catch (_: Exception) {
+                // Ignore JSON parse failure
+            }
+        }
+
+        // 2. Check if body is HTML (e.g. Nginx, OpenResty, Cloudflare error pages)
+        if (!rawBody.isNullOrEmpty() && (rawBody.contains("<html", ignoreCase = true) || rawBody.contains("<!DOCTYPE", ignoreCase = true) || rawBody.startsWith("<"))) {
+            val titleMatch = Regex("<title>(.*?)</title>", RegexOption.IGNORE_CASE).find(rawBody)
+            val extractedTitle = titleMatch?.groupValues?.get(1)?.trim()
+
+            if (!extractedTitle.isNullOrEmpty()) {
+                val cleanTitle = extractedTitle.replace(Regex("<[^>]*>"), "").trim()
+                return if (cleanTitle.startsWith("HTTP", ignoreCase = true) || cleanTitle.contains(code.toString())) {
+                    cleanTitle
+                } else {
+                    "HTTP $code ($cleanTitle)"
+                }
+            }
+            val reason = getStandardHttpReason(code, rawMessage)
+            return "HTTP $code $reason".trim()
+        }
+
+        // 3. If raw body is plain text and reasonably concise (< 150 chars)
+        if (!rawBody.isNullOrEmpty() && rawBody.length < 150 && !rawBody.contains("<")) {
+            return "HTTP $code: $rawBody"
+        }
+
+        // 4. Fallback to HTTP code + status message or reason
+        val reason = getStandardHttpReason(code, rawMessage)
+        return "HTTP $code $reason".trim()
+    }
+
+    private fun getStandardHttpReason(code: Int, defaultMessage: String?): String {
+        if (!defaultMessage.isNullOrEmpty() && defaultMessage != "Response.error()") {
+            return defaultMessage
+        }
+        return when (code) {
+            400 -> "Bad Request"
+            401 -> "Unauthorized"
+            403 -> "Forbidden"
+            404 -> "Not Found"
+            413 -> "Payload Too Large"
+            429 -> "Too Many Requests"
+            500 -> "Internal Server Error"
+            502 -> "Bad Gateway"
+            503 -> "Service Unavailable"
+            504 -> "Gateway Timeout"
+            else -> "Server Error"
         }
     }
 }
