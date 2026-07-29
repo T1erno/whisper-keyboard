@@ -32,22 +32,12 @@ object WhisperApiClient {
                 val rawJson = response.body()!!.string().trim()
                 val resultMap = mutableMapOf<String, Boolean>()
 
-                if (rawJson.startsWith("{")) {
-                    val jsonObj = org.json.JSONObject(rawJson)
-                    val array = jsonObj.optJSONArray("models") ?: jsonObj.optJSONArray("data")
-                    if (array != null) {
-                        parseJsonArrayToMap(array, resultMap)
-                    } else {
-                        val keys = jsonObj.keys()
-                        while (keys.hasNext()) {
-                            val k = keys.next()
-                            val value = jsonObj.optBoolean(k, true)
-                            resultMap[k.lowercase()] = value
-                        }
-                    }
-                } else if (rawJson.startsWith("[")) {
-                    val array = org.json.JSONArray(rawJson)
-                    parseJsonArrayToMap(array, resultMap)
+                val jsonObj = org.json.JSONObject(rawJson)
+                val keys = jsonObj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val isAvailable = jsonObj.optBoolean(key, false)
+                    resultMap[key.lowercase()] = isAvailable
                 }
 
                 serverModelsCache = resultMap
@@ -57,21 +47,6 @@ object WhisperApiClient {
             }
         } catch (e: Exception) {
             Result.failure(e)
-        }
-    }
-
-    private fun parseJsonArrayToMap(array: org.json.JSONArray, resultMap: MutableMap<String, Boolean>) {
-        for (i in 0 until array.length()) {
-            val item = array.opt(i)
-            if (item is org.json.JSONObject) {
-                val key = item.optString("key", item.optString("id", item.optString("name", "")))
-                val available = item.optBoolean("available", item.optBoolean("downloaded", item.optBoolean("ready", true)))
-                if (key.isNotEmpty()) {
-                    resultMap[key.lowercase()] = available
-                }
-            } else if (item is String) {
-                resultMap[item.lowercase()] = true
-            }
         }
     }
 
