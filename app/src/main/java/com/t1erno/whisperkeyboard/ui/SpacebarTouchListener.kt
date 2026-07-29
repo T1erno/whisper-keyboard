@@ -150,8 +150,9 @@ class SpacebarTouchListener(
         } else {
             // Word-wrapped text line (no explicit \n)
             if (textBefore.length <= AVG_LINE_CHARS) {
-                // Top line of word-wrapped text! Stop safely at index 0 without app scrolling.
-                return ic.setSelection(0, 0)
+                // Already on the top line of word-wrapped text!
+                // Return false so cursor stays at current position without jumping to index 0 or scrolling app.
+                return false
             }
 
             val searchStart = (textBefore.length - AVG_LINE_CHARS).coerceAtLeast(0)
@@ -203,8 +204,9 @@ class SpacebarTouchListener(
         } else {
             // Word-wrapped text line (no explicit \n)
             if (textAfter.length <= AVG_LINE_CHARS) {
-                // Bottom line of word-wrapped text! Stop safely at totalLength without app scrolling.
-                return ic.setSelection(totalLength, totalLength)
+                // Already on the bottom line of word-wrapped text!
+                // Return false so cursor stays at current position without jumping to end of text or scrolling app.
+                return false
             }
 
             val searchStart = AVG_LINE_CHARS.coerceAtMost(textAfter.length - 1)
