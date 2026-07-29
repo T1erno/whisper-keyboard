@@ -19,7 +19,7 @@ object TcpPingHelper {
 
     /**
      * Performs a network health check to /health relative to rawUrl.
-     * Verifies DNS resolution, TCP connection, SSL/TLS certificates, and SNI hostname validity.
+     * Verifies DNS resolution, TCP connection, SSL/TLS certificates, and HTTP 2xx/3xx response codes.
      * Returns Result<Long> with RTT in milliseconds on success.
      */
     suspend fun ping(rawUrl: String): Result<Long> = withContext(Dispatchers.IO) {
@@ -44,9 +44,15 @@ object TcpPingHelper {
             val startTime = System.currentTimeMillis()
             val response = pingClient.newCall(request).execute()
             val rtt = System.currentTimeMillis() - startTime
+            val isSuccess = response.isSuccessful || response.code in 200..399
+            val statusCode = response.code
             response.close()
 
-            Result.success(rtt)
+            if (isSuccess) {
+                Result.success(rtt)
+            } else {
+                Result.failure(Exception("HTTP Error $statusCode"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -62,6 +68,7 @@ object TcpPingHelper {
             this is java.net.UnknownHostException -> "Unknown host (DNS failed)"
             this is java.net.SocketTimeoutException -> "Connection timed out"
             this is java.net.ConnectException -> "Connection refused (Port closed)"
+            msg.contains("HTTP Error", ignoreCase = true) -> msg
             msg.contains("UNRECOGNIZED_NAME", ignoreCase = true) ||
             msg.contains("unrecognized name", ignoreCase = true) -> "Invalid domain (SSL unrecognized)"
             msg.contains("SSL", ignoreCase = true) || msg.contains("TLS", ignoreCase = true) -> "SSL / TLS Handshake Failed"
