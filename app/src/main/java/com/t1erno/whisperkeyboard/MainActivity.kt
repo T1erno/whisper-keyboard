@@ -329,7 +329,7 @@ class MainActivity : AppCompatActivity() {
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
                 btnDownloadModel.visibility = View.GONE
             } else if (isDownloading) {
-                tvModelStatus.text = "Downloading ${modelInfo.name}... ${progress ?: 0}%"
+                tvModelStatus.text = "Downloading model for Offline Edge..."
                 tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
                 btnDownloadModel.visibility = View.VISIBLE
                 btnDownloadModel.isEnabled = false
