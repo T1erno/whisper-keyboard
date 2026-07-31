@@ -2,6 +2,7 @@ package com.t1erno.whisperkeyboard.network
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -18,24 +19,54 @@ object TcpPingHelper {
     }
 
     /**
+     * Normalizes and validates rawUrl.
+     * Ensures scheme is http or https and host is valid.
+     */
+    fun normalizeAndValidateUrl(rawUrl: String): Result<String> {
+        val trimmed = rawUrl.trim()
+        if (trimmed.isEmpty()) {
+            return Result.failure(IllegalArgumentException("URL is empty"))
+        }
+
+        // Validate scheme if "://" is present
+        if (trimmed.contains("://")) {
+            val scheme = trimmed.substringBefore("://").lowercase()
+            if (scheme != "http" && scheme != "https") {
+                return Result.failure(IllegalArgumentException("Invalid URL scheme ('$scheme://' is not allowed, must be http:// or https://)"))
+            }
+        }
+
+        val urlWithScheme = if (!trimmed.startsWith("http://", ignoreCase = true) && !trimmed.startsWith("https://", ignoreCase = true)) {
+            "https://$trimmed"
+        } else {
+            trimmed
+        }
+
+        val parsedUrl = urlWithScheme.toHttpUrlOrNull()
+            ?: return Result.failure(IllegalArgumentException("Invalid URL format"))
+
+        val cleanUrl = if (!parsedUrl.toString().endsWith("/")) {
+            "${parsedUrl}/"
+        } else {
+            parsedUrl.toString()
+        }
+
+        return Result.success("${cleanUrl}health")
+    }
+
+    /**
      * Performs a network health check to /health relative to rawUrl.
      * Verifies DNS resolution, TCP connection, SSL/TLS certificates, and HTTP 2xx/3xx response codes.
      * Returns Result<Long> with RTT in milliseconds on success.
      */
     suspend fun ping(rawUrl: String): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            var cleanUrl = rawUrl.trim()
-            if (cleanUrl.isEmpty()) {
-                return@withContext Result.failure(Exception("URL is empty"))
+            val validationResult = normalizeAndValidateUrl(rawUrl)
+            if (validationResult.isFailure) {
+                return@withContext Result.failure(validationResult.exceptionOrNull() ?: Exception("Invalid URL"))
             }
-            if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-                cleanUrl = "https://$cleanUrl"
-            }
-            if (!cleanUrl.endsWith("/")) {
-                cleanUrl = "$cleanUrl/"
-            }
-            val healthUrl = "${cleanUrl}health"
 
+            val healthUrl = validationResult.getOrThrow()
             val request = Request.Builder()
                 .url(healthUrl)
                 .head()
@@ -64,6 +95,7 @@ object TcpPingHelper {
     fun Throwable.toHumanReadablePingError(): String {
         val msg = message ?: ""
         return when {
+            this is IllegalArgumentException || msg.contains("Invalid URL", ignoreCase = true) -> msg
             msg.contains("CLEARTEXT", ignoreCase = true) || msg.contains("cleartext", ignoreCase = true) -> "HTTP Cleartext blocked"
             this is java.net.UnknownHostException -> "Unknown host (DNS failed)"
             this is java.net.SocketTimeoutException -> "Connection timed out"

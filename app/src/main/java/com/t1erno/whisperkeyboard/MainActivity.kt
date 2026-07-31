@@ -135,14 +135,14 @@ class MainActivity : AppCompatActivity() {
 
         btnSaveUrl.setOnClickListener {
             val urlInput = etServerUrl.text.toString().trim()
-            if (urlInput.isNotEmpty()) {
-                if (urlInput.startsWith("http://", ignoreCase = true)) {
-                    showHttpWarningDialog(urlInput)
-                } else {
-                    saveAndApplyServerUrl(urlInput)
-                }
+            val validationResult = TcpPingHelper.normalizeAndValidateUrl(urlInput)
+            if (validationResult.isFailure) {
+                val errorMsg = validationResult.exceptionOrNull()?.message ?: "Please enter a valid URL"
+                Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
+            } else if (urlInput.startsWith("http://", ignoreCase = true)) {
+                showHttpWarningDialog(urlInput)
             } else {
-                Toast.makeText(this, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
+                saveAndApplyServerUrl(urlInput)
             }
         }
 
