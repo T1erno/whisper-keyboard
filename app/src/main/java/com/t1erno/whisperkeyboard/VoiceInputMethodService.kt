@@ -262,8 +262,9 @@ class VoiceInputMethodService : InputMethodService() {
     }
 
     private fun promptForPermission() {
-        Toast.makeText(this, "Microphone permission required. Launching setup...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Microphone permission required to record audio. Launching permission setup...", Toast.LENGTH_LONG).show()
         val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("request_permission", true)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         }
         startActivity(intent)

@@ -122,6 +122,7 @@ class MainActivity : AppCompatActivity() {
         val currentUrl = PreferencesManager.getServerUrl(this)
         etServerUrl.setText(currentUrl)
 
+        handlePermissionIntent(intent)
         setupEngineModeUI()
         setupModelSelectionUI()
 
@@ -408,6 +409,20 @@ class MainActivity : AppCompatActivity() {
         startPeriodicTcpPing()
         fetchRemoteServerModels()
         updateModelStatusUI()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePermissionIntent(intent)
+    }
+
+    private fun handlePermissionIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("request_permission", false) == true) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
     }
 
     override fun onPause() {
