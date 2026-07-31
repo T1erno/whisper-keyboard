@@ -1,5 +1,6 @@
 package com.t1erno.whisperkeyboard.ui
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
@@ -7,7 +8,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputConnection
 
-class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConnection?) {
+class ProgressiveBackspace(
+    private val contextProvider: () -> Context?,
+    private val inputConnectionProvider: () -> InputConnection?
+) {
 
     private val deleteHandler = Handler(Looper.getMainLooper())
     private var holdStartTime = 0L
@@ -29,6 +33,10 @@ class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConne
 
     fun executeBackspace() {
         val ic = inputConnectionProvider() ?: return
+        contextProvider()?.let { ctx ->
+            VibrationHelper.vibrateKey(ctx, 18L)
+        }
+
         val selectedText = ic.getSelectedText(0)
         if (!selectedText.isNullOrEmpty()) {
             ic.commitText("", 1)
@@ -43,7 +51,6 @@ class ProgressiveBackspace(private val inputConnectionProvider: () -> InputConne
         backspaceButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    VibrationHelper.vibrateKey(backspaceButton.context, 18L)
                     holdStartTime = System.currentTimeMillis()
                     executeBackspace()
                     deleteHandler.removeCallbacks(deleteRunnable)

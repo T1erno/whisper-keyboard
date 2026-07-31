@@ -66,7 +66,10 @@ class VoiceInputMethodService : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         audioRecorderManager = AudioRecorderManager(this)
-        progressiveBackspace = ProgressiveBackspace { currentInputConnection }
+        progressiveBackspace = ProgressiveBackspace(
+            contextProvider = { this },
+            inputConnectionProvider = { currentInputConnection }
+        )
         punctuationKeyManager = PunctuationKeyManager { text ->
             currentInputConnection?.commitText(text, 1)
         }

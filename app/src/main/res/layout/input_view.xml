@@ -259,7 +259,7 @@
             android:layout_marginStart="4dp"
             android:background="@drawable/bg_blue_action_button"
             android:contentDescription="Enter"
-            android:src="@drawable/ic_arrow_right"
+            android:src="@drawable/ic_enter"
             app:tint="#FFFFFF" />
     </LinearLayout>
 
