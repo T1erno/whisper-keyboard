@@ -275,6 +275,7 @@ class MainActivity : AppCompatActivity() {
 
             PreferencesManager.setSelectedModelFileName(this, selectedModel.fileName)
             OnDeviceTranscriber.releaseContext()
+            fetchRemoteServerModels()
             updateModelStatusUI()
         }
 
@@ -312,11 +313,11 @@ class MainActivity : AppCompatActivity() {
                     tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
                 }
                 false -> {
-                    tvModelStatus.text = "⚠️ Model not loaded on server (${modelInfo.name})"
+                    tvModelStatus.text = "⚠️ Model not loaded on server"
                     tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
                 }
                 null -> {
-                    tvModelStatus.text = "Remote Server model: ${modelInfo.name}"
+                    tvModelStatus.text = "Checking server model status..."
                     tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
                 }
             }
