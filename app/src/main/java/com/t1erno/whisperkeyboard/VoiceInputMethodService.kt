@@ -175,17 +175,19 @@ class VoiceInputMethodService : InputMethodService() {
                 btnMic?.scaleY = targetScale
 
                 // Voice Activity Detection (VAD) / Silence Auto-Stop
-                if (amp > SPEECH_DETECTION_THRESHOLD_AMP) {
-                    speechDetected = true
-                    silenceStartMs = 0L
-                } else if (speechDetected && amp < SILENCE_THRESHOLD_AMP) {
-                    if (silenceStartMs == 0L) {
-                        silenceStartMs = System.currentTimeMillis()
-                    } else if (System.currentTimeMillis() - silenceStartMs >= SILENCE_AUTO_STOP_DURATION_MS) {
-                        // Silence auto-stop triggered!
-                        isTapToTalkActive = false
-                        stopAndProcessRecording()
-                        break
+                if (PreferencesManager.isAutoSendOnSilenceEnabled(this@VoiceInputMethodService)) {
+                    if (amp > SPEECH_DETECTION_THRESHOLD_AMP) {
+                        speechDetected = true
+                        silenceStartMs = 0L
+                    } else if (speechDetected && amp < SILENCE_THRESHOLD_AMP) {
+                        if (silenceStartMs == 0L) {
+                            silenceStartMs = System.currentTimeMillis()
+                        } else if (System.currentTimeMillis() - silenceStartMs >= SILENCE_AUTO_STOP_DURATION_MS) {
+                            // Silence auto-stop triggered!
+                            isTapToTalkActive = false
+                            stopAndProcessRecording()
+                            break
+                        }
                     }
                 }
 

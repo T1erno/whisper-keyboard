@@ -14,6 +14,7 @@ object PreferencesManager {
     private const val PREF_NAME = "whisper_keyboard_prefs"
     private const val KEY_SERVER_URL = "server_url"
     private const val KEY_HAPTIC_ENABLED = "haptic_enabled"
+    private const val KEY_AUTO_SEND_SILENCE = "auto_send_silence"
     private const val KEY_ENGINE_MODE = "engine_mode"
     private const val KEY_SELECTED_MODEL = "selected_model_file"
 
@@ -45,6 +46,14 @@ object PreferencesManager {
 
     fun setHapticEnabled(context: Context, enabled: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_HAPTIC_ENABLED, enabled).apply()
+    }
+
+    fun isAutoSendOnSilenceEnabled(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_AUTO_SEND_SILENCE, true)
+    }
+
+    fun setAutoSendOnSilenceEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_AUTO_SEND_SILENCE, enabled).apply()
     }
 
     fun getEngineMode(context: Context): EngineMode {

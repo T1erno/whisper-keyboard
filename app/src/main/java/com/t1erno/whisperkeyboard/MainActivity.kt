@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPingInfo: TextView
     private lateinit var btnSaveUrl: Button
     private lateinit var switchHaptic: SwitchMaterial
+    private lateinit var switchAutoSendSilence: SwitchMaterial
 
     private lateinit var toggleEngineMode: MaterialButtonToggleGroup
     private lateinit var tvEngineModeDesc: TextView
@@ -91,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         tvPingInfo = findViewById(R.id.tv_ping_info)
         btnSaveUrl = findViewById(R.id.btn_save_url)
         switchHaptic = findViewById(R.id.switch_haptic)
+        switchAutoSendSilence = findViewById(R.id.switch_auto_send_silence)
 
         toggleEngineMode = findViewById(R.id.toggle_engine_mode)
         tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
@@ -125,6 +127,14 @@ class MainActivity : AppCompatActivity() {
         handlePermissionIntent(intent)
         setupEngineModeUI()
         setupModelSelectionUI()
+
+        switchAutoSendSilence.isChecked = PreferencesManager.isAutoSendOnSilenceEnabled(this)
+        switchAutoSendSilence.setOnCheckedChangeListener { _, isChecked ->
+            PreferencesManager.setAutoSendOnSilenceEnabled(this, isChecked)
+            if (PreferencesManager.isHapticEnabled(this)) {
+                VibrationHelper.vibrateKey(this, 30L)
+            }
+        }
 
         switchHaptic.isChecked = PreferencesManager.isHapticEnabled(this)
         switchHaptic.setOnCheckedChangeListener { _, isChecked ->
