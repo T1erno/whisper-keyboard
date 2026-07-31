@@ -188,4 +188,4 @@ curl -X POST "https://whisper.t1erno.com/transcribe?model=large-v3-turbo&languag
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
