@@ -192,8 +192,10 @@ object PreferencesManager {
                 val current = getCustomRemoteModel(context)
                 val list = mutableListOf<String>()
                 if (current.isNotBlank()) list.add(current)
-                list.add("Systran/faster-whisper-small")
-                list.add("deepdml/faster-whisper-large-v3-turbo-ct2")
+                list.add("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin")
+                list.add("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin")
+                list.add("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin")
+                list.add("openai/whisper-large-v3")
                 list.distinct()
             }
             KEY_HISTORY_OFFLINE_MODEL -> {

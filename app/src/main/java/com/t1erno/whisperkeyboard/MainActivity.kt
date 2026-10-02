@@ -494,13 +494,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (isCustom) {
-            val custom = PreferencesManager.getCustomRemoteModel(this)
-            tvRemoteModelStatus.text = if (custom.isNotBlank()) {
-                "Active Remote Model: $custom"
+            val custom = PreferencesManager.getCustomRemoteModel(this).trim()
+            val isBareRepo = custom.contains("/") && !custom.contains(".") && !listOf("large", "medium", "small", "base", "tiny").any { custom.contains(it, ignoreCase = true) }
+
+            if (custom.isBlank()) {
+                tvRemoteModelStatus.text = "Enter custom model URL or repo/file above"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            } else if (isBareRepo) {
+                tvRemoteModelStatus.text = "⚠️ Especifica el archivo .bin (ej. $custom/ggml-large-v2.bin)"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.mic_recording_start))
             } else {
-                "Enter custom model repository / identifier above"
+                val clean = if (custom.contains("/")) custom.substringAfterLast("/") else custom
+                tvRemoteModelStatus.text = "Active Remote Model: $clean"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             }
-            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
         } else {
             val displayName = when (currentRemote) {
                 "large-v3" -> "Large v3"

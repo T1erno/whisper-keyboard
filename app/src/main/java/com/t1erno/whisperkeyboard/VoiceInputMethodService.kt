@@ -352,7 +352,9 @@ class VoiceInputMethodService : InputMethodService() {
         val modelLabel = if (mode == PreferencesManager.EngineMode.EDGE_ON_DEVICE) {
             modelInfo.name
         } else {
-            PreferencesManager.getRemoteModel(this)
+            val remote = PreferencesManager.getRemoteModel(this)
+            val clean = if (remote.contains("/")) remote.substringAfterLast("/") else remote
+            if (clean.endsWith(".bin", ignoreCase = true)) clean.removeSuffix(".bin") else clean
         }
 
         when (state) {
