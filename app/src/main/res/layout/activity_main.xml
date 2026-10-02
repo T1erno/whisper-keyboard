@@ -83,9 +83,11 @@
                         android:layout_weight="1"
                         android:text="Remote Server"
                         android:textAllCaps="false"
-                        android:textColor="@color/text_primary"
+                        android:textColor="@color/selector_toggle_text"
                         android:textSize="13sp"
-                        app:strokeColor="@color/accent_purple" />
+                        app:backgroundTint="@color/selector_toggle_bg"
+                        app:strokeColor="@color/selector_toggle_stroke"
+                        app:strokeWidth="1dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_mode_edge"
@@ -95,9 +97,11 @@
                         android:layout_weight="1"
                         android:text="Offline Edge"
                         android:textAllCaps="false"
-                        android:textColor="@color/text_primary"
+                        android:textColor="@color/selector_toggle_text"
                         android:textSize="13sp"
-                        app:strokeColor="@color/accent_purple" />
+                        app:backgroundTint="@color/selector_toggle_bg"
+                        app:strokeColor="@color/selector_toggle_stroke"
+                        app:strokeWidth="1dp" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

@@ -1,14 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.WhisperKeyboard" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Brand Colors -->
         <item name="colorPrimary">@color/accent_purple</item>
         <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorSecondary">@color/accent_purple</item>
+        <item name="colorSecondaryVariant">@color/mic_purple_end</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+        <item name="colorAccent">@color/accent_purple</item>
+
+        <!-- Surfaces & System Bars -->
         <item name="colorSurface">@color/card_bg</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:statusBarColor">@color/keyboard_background</item>
         <item name="android:windowBackground">@color/keyboard_background</item>
+        <item name="android:navigationBarColor">@color/keyboard_background</item>
+
+        <!-- Controls, Cursors & Ripples -->
+        <item name="colorControlActivated">@color/accent_purple</item>
+        <item name="colorControlHighlight">#338B5CF6</item>
+        <item name="android:textColorHighlight">#4D8B5CF6</item>
+        <item name="android:colorEdgeEffect">@color/accent_purple</item>
+
+        <!-- Widgets -->
+        <item name="radioButtonStyle">@style/Widget.WhisperKeyboard.RadioButton</item>
+        <item name="switchStyle">@style/Widget.WhisperKeyboard.Switch</item>
+
+        <!-- Dialogs -->
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.WhisperKeyboard.MaterialAlertDialog</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.WhisperKeyboard.MaterialAlertDialog</item>
+    </style>
+
+    <style name="Widget.WhisperKeyboard.RadioButton" parent="Widget.MaterialComponents.CompoundButton.RadioButton">
+        <item name="buttonTint">@color/selector_radio_button_tint</item>
+        <item name="android:textColor">@color/selector_radio_text</item>
+    </style>
+
+    <style name="Widget.WhisperKeyboard.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="thumbTint">@color/selector_switch_thumb</item>
+        <item name="trackTint">@color/selector_switch_track</item>
     </style>
 
     <style name="ThemeOverlay.WhisperKeyboard.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">

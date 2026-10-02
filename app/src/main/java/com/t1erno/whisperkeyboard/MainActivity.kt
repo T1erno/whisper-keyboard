@@ -749,6 +749,8 @@ class MainActivity : AppCompatActivity() {
 
                 val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                     max = 100
+                    progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.accent_purple))
+                    progressBackgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.key_bg))
                     setProgress(prog)
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
