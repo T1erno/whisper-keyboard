@@ -19,7 +19,9 @@ interface WhisperApiService {
     suspend fun transcribeAudio(
         @Part file: MultipartBody.Part,
         @Query("model") model: String? = null,
-        @Query("language") language: String? = "es"
+        @Query("language") language: String? = null,
+        @Query("prompt") prompt: String? = null,
+        @Query("initial_prompt") initialPrompt: String? = null
     ): Response<TranscriptionResponse>
 
     /**

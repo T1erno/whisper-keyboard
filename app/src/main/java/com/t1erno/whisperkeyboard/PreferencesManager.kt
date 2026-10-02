@@ -18,6 +18,8 @@ object PreferencesManager {
     private const val KEY_HAPTIC_ENABLED = "haptic_enabled"
     private const val KEY_AUTO_SEND_SILENCE = "auto_send_silence"
     private const val KEY_AUTO_INSERT_SPACE = "auto_insert_space"
+    private const val KEY_INITIAL_PROMPT = "initial_prompt"
+    private const val KEY_TRANSCRIPTION_LANGUAGE = "transcription_language"
     private const val KEY_ENGINE_MODE = "engine_mode"
     private const val KEY_SELECTED_MODEL = "selected_model_file"
     private const val KEY_REMOTE_MODEL = "remote_model"
@@ -30,6 +32,8 @@ object PreferencesManager {
     const val KEY_HISTORY_REMOTE_MODEL = "history_remote_model"
     const val KEY_HISTORY_OFFLINE_MODEL = "history_offline_model"
 
+    const val DEFAULT_INITIAL_PROMPT = "Punctuation: commas, periods, question marks, and capitalization."
+    const val DEFAULT_TRANSCRIPTION_LANGUAGE = "auto"
     private const val DEFAULT_URL = "https://whisper.t1erno.com/"
     private const val DEFAULT_REMOTE_MODEL = "large-v3-turbo"
 
@@ -75,6 +79,26 @@ object PreferencesManager {
 
     fun setAutoInsertSpaceEnabled(context: Context, enabled: Boolean) {
         getPreferences(context).edit { putBoolean(KEY_AUTO_INSERT_SPACE, enabled) }
+    }
+
+    fun getInitialPrompt(context: Context): String {
+        return getPreferences(context).getString(KEY_INITIAL_PROMPT, DEFAULT_INITIAL_PROMPT) ?: DEFAULT_INITIAL_PROMPT
+    }
+
+    fun setInitialPrompt(context: Context, prompt: String) {
+        getPreferences(context).edit { putString(KEY_INITIAL_PROMPT, prompt.trim()) }
+    }
+
+    fun resetInitialPrompt(context: Context) {
+        getPreferences(context).edit { putString(KEY_INITIAL_PROMPT, DEFAULT_INITIAL_PROMPT) }
+    }
+
+    fun getTranscriptionLanguage(context: Context): String {
+        return getPreferences(context).getString(KEY_TRANSCRIPTION_LANGUAGE, DEFAULT_TRANSCRIPTION_LANGUAGE) ?: DEFAULT_TRANSCRIPTION_LANGUAGE
+    }
+
+    fun setTranscriptionLanguage(context: Context, langCode: String) {
+        getPreferences(context).edit { putString(KEY_TRANSCRIPTION_LANGUAGE, langCode.trim()) }
     }
 
     fun getEngineMode(context: Context): EngineMode {

@@ -44,7 +44,7 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_freeContext(
 
 JNIEXPORT jstring JNICALL
 Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_transcribeData(
-        JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray samples_array, jstring language_str) {
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray samples_array, jstring language_str, jstring prompt_str) {
     if (context_ptr == 0) {
         return env->NewStringUTF("");
     }
@@ -54,6 +54,7 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_transcribeData(
     jfloat *samples = env->GetFloatArrayElements(samples_array, nullptr);
     jsize n_samples = env->GetArrayLength(samples_array);
     const char *lang = language_str ? env->GetStringUTFChars(language_str, nullptr) : nullptr;
+    const char *prompt = prompt_str ? env->GetStringUTFChars(prompt_str, nullptr) : nullptr;
 
     struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     params.print_realtime = false;
@@ -62,6 +63,7 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_transcribeData(
     params.print_special = false;
     params.translate = false;
     params.language = (lang && strlen(lang) > 0) ? lang : "auto";
+    params.initial_prompt = (prompt && strlen(prompt) > 0) ? prompt : nullptr;
     params.n_threads = num_threads > 0 ? num_threads : 3;
     params.offset_ms = 0;
     params.no_context = true;
@@ -87,6 +89,9 @@ Java_com_t1erno_whisperkeyboard_nativeengine_WhisperNative_transcribeData(
     env->ReleaseFloatArrayElements(samples_array, samples, JNI_ABORT);
     if (lang) {
         env->ReleaseStringUTFChars(language_str, lang);
+    }
+    if (prompt) {
+        env->ReleaseStringUTFChars(prompt_str, prompt);
     }
 
     return env->NewStringUTF(result_text.c_str());

@@ -127,8 +127,7 @@ object WhisperApiClient {
      */
     suspend fun uploadAudio(
         context: Context,
-        audioFile: File,
-        language: String = "es"
+        audioFile: File
     ): Result<String> {
         return try {
             val apiService = getApiService(context)
@@ -136,11 +135,20 @@ object WhisperApiClient {
             val body = MultipartBody.Part.createFormData("file", audioFile.name, requestFile)
 
             val remoteModelKey = PreferencesManager.getRemoteModel(context)
+            val langPreference = PreferencesManager.getTranscriptionLanguage(context)
+            val languageParam = if (langPreference.equals("auto", ignoreCase = true) || langPreference.isBlank()) {
+                null
+            } else {
+                langPreference
+            }
+            val initialPrompt = PreferencesManager.getInitialPrompt(context).ifBlank { null }
 
             val response = apiService.transcribeAudio(
                 file = body,
                 model = remoteModelKey.ifEmpty { null },
-                language = language
+                language = languageParam,
+                prompt = initialPrompt,
+                initialPrompt = initialPrompt
             )
 
             if (response.isSuccessful) {

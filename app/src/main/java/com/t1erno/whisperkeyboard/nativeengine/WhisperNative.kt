@@ -28,6 +28,7 @@ object WhisperNative {
         contextPtr: Long,
         numThreads: Int,
         samples: FloatArray,
-        language: String
+        language: String,
+        initialPrompt: String? = null
     ): String
 }

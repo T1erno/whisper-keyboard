@@ -14,6 +14,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -39,6 +41,7 @@ import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
 import com.t1erno.whisperkeyboard.network.TcpPingHelper
 import com.t1erno.whisperkeyboard.network.TcpPingHelper.toHumanReadablePingError
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
+import com.t1erno.whisperkeyboard.network.WhisperLanguages
 import com.t1erno.whisperkeyboard.ui.VibrationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,6 +61,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchHaptic: SwitchMaterial
     private lateinit var switchAutoSendSilence: SwitchMaterial
     private lateinit var switchAutoSpace: SwitchMaterial
+    private lateinit var etInitialPrompt: EditText
+    private lateinit var btnResetPrompt: MaterialButton
+    private lateinit var btnSavePrompt: MaterialButton
+    private lateinit var actvLanguage: AutoCompleteTextView
 
     private lateinit var toggleEngineMode: MaterialButtonToggleGroup
     private lateinit var tvEngineModeDesc: TextView
@@ -127,6 +134,10 @@ class MainActivity : AppCompatActivity() {
         switchHaptic = findViewById(R.id.switch_haptic)
         switchAutoSendSilence = findViewById(R.id.switch_auto_send_silence)
         switchAutoSpace = findViewById(R.id.switch_auto_space)
+        etInitialPrompt = findViewById(R.id.et_initial_prompt)
+        btnResetPrompt = findViewById(R.id.btn_reset_prompt)
+        btnSavePrompt = findViewById(R.id.btn_save_prompt)
+        actvLanguage = findViewById(R.id.actv_language)
 
         toggleEngineMode = findViewById(R.id.toggle_engine_mode)
         tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
@@ -208,6 +219,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        setupInitialPromptUI()
+        setupLanguageDropdownUI()
+
         btnSaveUrl.setOnClickListener {
             val urlInput = etServerUrl.text.toString().trim()
             val validationResult = TcpPingHelper.normalizeAndValidateUrl(urlInput)
@@ -265,6 +279,54 @@ class MainActivity : AppCompatActivity() {
         btnSelectKeyboard.setOnClickListener {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showInputMethodPicker()
+        }
+    }
+
+    private fun setupInitialPromptUI() {
+        val currentPrompt = PreferencesManager.getInitialPrompt(this)
+        etInitialPrompt.setText(currentPrompt)
+
+        btnSavePrompt.setOnClickListener {
+            val promptText = etInitialPrompt.text.toString().trim()
+            PreferencesManager.setInitialPrompt(this, promptText)
+            if (PreferencesManager.isHapticEnabled(this)) {
+                VibrationHelper.vibrateKey(this, 30L)
+            }
+            Toast.makeText(this, "Initial prompt saved", Toast.LENGTH_SHORT).show()
+        }
+
+        btnResetPrompt.setOnClickListener {
+            PreferencesManager.resetInitialPrompt(this)
+            etInitialPrompt.setText(PreferencesManager.DEFAULT_INITIAL_PROMPT)
+            if (PreferencesManager.isHapticEnabled(this)) {
+                VibrationHelper.vibrateKey(this, 30L)
+            }
+            Toast.makeText(this, "Reset to default prompt", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupLanguageDropdownUI() {
+        val languages = WhisperLanguages.ALL_LANGUAGES
+        val displayNames = languages.map { it.displayName }
+        val adapter = ArrayAdapter(this, R.layout.item_dropdown_language, displayNames)
+        actvLanguage.setAdapter(adapter)
+
+        val currentCode = PreferencesManager.getTranscriptionLanguage(this)
+        val currentItem = WhisperLanguages.findByCode(currentCode) ?: WhisperLanguages.AUTO
+        actvLanguage.setText(currentItem.displayName, false)
+
+        actvLanguage.setOnClickListener {
+            actvLanguage.showDropDown()
+        }
+
+        actvLanguage.setOnItemClickListener { parent, _, position, _ ->
+            val selectedDisplayName = parent.getItemAtPosition(position) as String
+            val matched = WhisperLanguages.findByDisplayName(selectedDisplayName) ?: WhisperLanguages.AUTO
+            PreferencesManager.setTranscriptionLanguage(this, matched.code)
+            if (PreferencesManager.isHapticEnabled(this)) {
+                VibrationHelper.vibrateKey(this, 30L)
+            }
+            Toast.makeText(this, "Language: ${matched.displayName}", Toast.LENGTH_SHORT).show()
         }
     }
 

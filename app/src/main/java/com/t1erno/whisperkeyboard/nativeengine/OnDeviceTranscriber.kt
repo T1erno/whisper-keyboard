@@ -58,7 +58,10 @@ object OnDeviceTranscriber {
 
             // 3 performance cores optimal for Snapdragon 8+ Gen 1 to avoid thread barrier delays on efficiency cores
             val cores = 3
-            val text = WhisperNative.transcribeData(ctxPtr, cores, samples, "auto")
+            val langPref = PreferencesManager.getTranscriptionLanguage(context)
+            val langCode = if (langPref.isBlank()) "auto" else langPref
+            val initialPrompt = PreferencesManager.getInitialPrompt(context).ifBlank { null }
+            val text = WhisperNative.transcribeData(ctxPtr, cores, samples, langCode, initialPrompt)
 
             if (text.isNotBlank()) {
                 Result.success(text.trim())
