@@ -699,7 +699,6 @@ class MainActivity : AppCompatActivity() {
         }
         val isDownloaded = ModelManager.isModelDownloaded(this, modelInfo.fileName)
         val isDownloading = ModelManager.isModelDownloading(modelInfo.fileName)
-        val progress = ModelManager.getDownloadProgress(modelInfo.fileName)
 
         val modelsMap = listOf(
             rbOfflineLargeV3 to ModelManager.MODEL_LARGE_V3,
