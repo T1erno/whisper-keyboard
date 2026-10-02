@@ -73,7 +73,9 @@ class VoiceInputMethodService : InputMethodService() {
             inputConnectionProvider = { currentInputConnection }
         )
         punctuationKeyManager = PunctuationKeyManager { text ->
-            currentInputConnection?.commitText(text, 1)
+            val autoSpace = PreferencesManager.isAutoInsertSpaceEnabled(this)
+            val textToCommit = if (!autoSpace) text.trimEnd() else text
+            currentInputConnection?.commitText(textToCommit, 1)
         }
         try {
             toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
@@ -341,7 +343,9 @@ class VoiceInputMethodService : InputMethodService() {
         val ic = currentInputConnection ?: return
         val trimmed = text.trim()
         if (trimmed.isNotEmpty()) {
-            ic.commitText("$trimmed ", 1)
+            val autoSpace = PreferencesManager.isAutoInsertSpaceEnabled(this)
+            val textToCommit = if (autoSpace) "$trimmed " else trimmed
+            ic.commitText(textToCommit, 1)
         }
     }
 

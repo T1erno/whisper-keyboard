@@ -17,6 +17,7 @@ object PreferencesManager {
     private const val KEY_SERVER_URL = "server_url"
     private const val KEY_HAPTIC_ENABLED = "haptic_enabled"
     private const val KEY_AUTO_SEND_SILENCE = "auto_send_silence"
+    private const val KEY_AUTO_INSERT_SPACE = "auto_insert_space"
     private const val KEY_ENGINE_MODE = "engine_mode"
     private const val KEY_SELECTED_MODEL = "selected_model_file"
     private const val KEY_REMOTE_MODEL = "remote_model"
@@ -66,6 +67,14 @@ object PreferencesManager {
 
     fun setAutoSendOnSilenceEnabled(context: Context, enabled: Boolean) {
         getPreferences(context).edit { putBoolean(KEY_AUTO_SEND_SILENCE, enabled) }
+    }
+
+    fun isAutoInsertSpaceEnabled(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_AUTO_INSERT_SPACE, true)
+    }
+
+    fun setAutoInsertSpaceEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(KEY_AUTO_INSERT_SPACE, enabled) }
     }
 
     fun getEngineMode(context: Context): EngineMode {
