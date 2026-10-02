@@ -18,32 +18,26 @@
         <item name="colorOnPrimary">@color/text_primary</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.WhisperKeyboard.Dialog</item>
-        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.WhisperKeyboard.DialogTitle</item>
-        <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.WhisperKeyboard.DialogBody</item>
-        <item name="buttonBarPositiveButtonStyle">@style/Widget.WhisperKeyboard.DialogButton</item>
-        <item name="buttonBarNegativeButtonStyle">@style/Widget.WhisperKeyboard.DialogButton</item>
-        <item name="buttonBarNeutralButtonStyle">@style/Widget.WhisperKeyboard.DialogButton</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.WhisperKeyboard.Dialog</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.WhisperKeyboard.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.WhisperKeyboard.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.WhisperKeyboard.Body</item>
     </style>
 
-    <style name="Widget.WhisperKeyboard.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/accent_purple</item>
-        <item name="rippleColor">#338B5CF6</item>
-    </style>
-
-    <style name="TextAppearance.WhisperKeyboard.DialogTitle" parent="TextAppearance.MaterialComponents.Headline6">
+    <style name="MaterialAlertDialog.WhisperKeyboard.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">18sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <style name="TextAppearance.WhisperKeyboard.DialogBody" parent="TextAppearance.MaterialComponents.Body2">
+    <style name="MaterialAlertDialog.WhisperKeyboard.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">14sp</item>
         <item name="android:lineSpacingExtra">3dp</item>
     </style>
 
-    <style name="ShapeAppearance.WhisperKeyboard.Dialog" parent="">
+    <style name="ShapeAppearance.WhisperKeyboard.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">20dp</item>
     </style>
