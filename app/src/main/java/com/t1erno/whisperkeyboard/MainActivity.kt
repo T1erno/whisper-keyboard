@@ -4,7 +4,6 @@ package com.t1erno.whisperkeyboard
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
