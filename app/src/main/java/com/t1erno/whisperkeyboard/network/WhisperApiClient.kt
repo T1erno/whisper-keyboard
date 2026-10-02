@@ -136,11 +136,7 @@ object WhisperApiClient {
 
             val remoteModelKey = PreferencesManager.getRemoteModel(context)
             val langPreference = PreferencesManager.getTranscriptionLanguage(context)
-            val languageParam = if (langPreference.equals("auto", ignoreCase = true) || langPreference.isBlank()) {
-                null
-            } else {
-                langPreference
-            }
+            val languageParam = if (langPreference.isBlank()) "auto" else langPreference
             val initialPrompt = PreferencesManager.getInitialPrompt(context).ifBlank { null }
 
             val response = apiService.transcribeAudio(
