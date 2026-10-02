@@ -7,11 +7,15 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.provider.Settings
+import android.text.InputType
 import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioButton
@@ -43,6 +47,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var etServerUrl: EditText
+    private lateinit var btnServerUrlHistory: ImageButton
     private lateinit var cardRemoteSettings: MaterialCardView
     private lateinit var vStatusDot: View
     private lateinit var tvPingInfo: TextView
@@ -66,6 +71,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbRemoteCustom: RadioButton
     private lateinit var layoutCustomModelInput: LinearLayout
     private lateinit var etCustomRemoteModel: EditText
+    private lateinit var btnCustomRemoteModelHistory: ImageButton
 
     // Offline Edge Models Card Views
     private lateinit var cardOfflineModels: MaterialCardView
@@ -79,6 +85,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbOfflineCustom: RadioButton
     private lateinit var layoutCustomOfflineModelInput: LinearLayout
     private lateinit var etCustomOfflineModel: EditText
+    private lateinit var btnCustomOfflineModelHistory: ImageButton
     private lateinit var tvOfflineModelStatus: TextView
     private lateinit var layoutActiveDownloads: LinearLayout
     private lateinit var btnDownloadModel: MaterialButton
@@ -108,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         etServerUrl = findViewById(R.id.et_server_url)
+        btnServerUrlHistory = findViewById(R.id.btn_server_url_history)
         cardRemoteSettings = findViewById(R.id.card_remote_settings)
         vStatusDot = findViewById(R.id.v_status_dot)
         tvPingInfo = findViewById(R.id.tv_ping_info)
@@ -131,6 +139,7 @@ class MainActivity : AppCompatActivity() {
         rbRemoteCustom = findViewById(R.id.rb_remote_custom)
         layoutCustomModelInput = findViewById(R.id.layout_custom_model_input)
         etCustomRemoteModel = findViewById(R.id.et_custom_remote_model)
+        btnCustomRemoteModelHistory = findViewById(R.id.btn_custom_remote_model_history)
 
         // Offline Models Card
         cardOfflineModels = findViewById(R.id.card_offline_models)
@@ -144,6 +153,7 @@ class MainActivity : AppCompatActivity() {
         rbOfflineCustom = findViewById(R.id.rb_offline_custom)
         layoutCustomOfflineModelInput = findViewById(R.id.layout_custom_offline_model_input)
         etCustomOfflineModel = findViewById(R.id.et_custom_offline_model)
+        btnCustomOfflineModelHistory = findViewById(R.id.btn_custom_offline_model_history)
         tvOfflineModelStatus = findViewById(R.id.tv_offline_model_status)
         layoutActiveDownloads = findViewById(R.id.layout_active_downloads)
         btnDownloadModel = findViewById(R.id.btn_download_model)
@@ -198,6 +208,39 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        btnServerUrlHistory.setOnClickListener {
+            showHistoryDialog(
+                title = "Server URL History",
+                historyKey = PreferencesManager.KEY_HISTORY_SERVER_URL,
+                currentValueGetter = { etServerUrl.text.toString().trim() },
+                onItemSelected = { selectedUrl ->
+                    val validationResult = TcpPingHelper.normalizeAndValidateUrl(selectedUrl)
+                    if (validationResult.isFailure) {
+                        val errorMsg = validationResult.exceptionOrNull()?.message ?: "Please enter a valid URL"
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
+                    } else if (selectedUrl.startsWith("http://", ignoreCase = true)) {
+                        showHttpWarningDialog(selectedUrl)
+                    } else {
+                        saveAndApplyServerUrl(selectedUrl)
+                    }
+                },
+                onItemModified = { oldVal, newVal ->
+                    if (etServerUrl.text.toString().trim().equals(oldVal, ignoreCase = true)) {
+                        saveAndApplyServerUrl(newVal)
+                    }
+                }
+            )
+        }
+
+        etServerUrl.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                btnSaveUrl.performClick()
+                true
+            } else {
+                false
+            }
+        }
+
         btnGrantPermission.setOnClickListener {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
@@ -244,6 +287,7 @@ class MainActivity : AppCompatActivity() {
         PreferencesManager.saveServerUrl(this, url)
         val updatedUrl = PreferencesManager.getServerUrl(this)
         etServerUrl.setText(updatedUrl)
+        PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_SERVER_URL, updatedUrl)
         Toast.makeText(this, "Server URL saved!", Toast.LENGTH_SHORT).show()
         startPeriodicTcpPing()
         fetchRemoteServerModels()
@@ -288,6 +332,7 @@ class MainActivity : AppCompatActivity() {
             // Disable & Grey out Remote Server settings
             etServerUrl.isEnabled = false
             btnSaveUrl.isEnabled = false
+            btnServerUrlHistory.isEnabled = false
             cardRemoteSettings.alpha = 0.5f
 
             // Decouple UI: Show Offline Edge Model Selection
@@ -302,6 +347,7 @@ class MainActivity : AppCompatActivity() {
             // Enable & Restore Remote Server settings
             etServerUrl.isEnabled = true
             btnSaveUrl.isEnabled = true
+            btnServerUrlHistory.isEnabled = true
             cardRemoteSettings.alpha = 1.0f
 
             // Decouple UI: Show Remote Server Model Selection
@@ -372,6 +418,51 @@ class MainActivity : AppCompatActivity() {
                 PreferencesManager.setIsCustomRemoteModel(this, true)
                 updateRemoteModelStatusUI()
             }
+        }
+
+        etCustomRemoteModel.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val custom = etCustomRemoteModel.text.toString().trim()
+                if (custom.isNotBlank()) {
+                    PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_REMOTE_MODEL, custom)
+                }
+            }
+            false
+        }
+
+        etCustomRemoteModel.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val custom = etCustomRemoteModel.text.toString().trim()
+                if (custom.isNotBlank()) {
+                    PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_REMOTE_MODEL, custom)
+                }
+            }
+        }
+
+        btnCustomRemoteModelHistory.setOnClickListener {
+            showHistoryDialog(
+                title = "Remote Model History",
+                historyKey = PreferencesManager.KEY_HISTORY_REMOTE_MODEL,
+                currentValueGetter = { etCustomRemoteModel.text.toString().trim() },
+                onItemSelected = { selectedModel ->
+                    etCustomRemoteModel.setText(selectedModel)
+                    PreferencesManager.setCustomRemoteModel(this, selectedModel)
+                    PreferencesManager.setIsCustomRemoteModel(this, true)
+                    rbRemoteCustom.isChecked = true
+                    layoutCustomModelInput.visibility = View.VISIBLE
+                    rgRemoteModels.clearCheck()
+                    updateRemoteModelStatusUI()
+                    VibrationHelper.vibrateKey(this, 20L)
+                    Toast.makeText(this, "Selected: $selectedModel", Toast.LENGTH_SHORT).show()
+                },
+                onItemModified = { oldVal, newVal ->
+                    if (etCustomRemoteModel.text.toString().trim().equals(oldVal, ignoreCase = true)) {
+                        etCustomRemoteModel.setText(newVal)
+                        PreferencesManager.setCustomRemoteModel(this, newVal)
+                        updateRemoteModelStatusUI()
+                    }
+                }
+            )
         }
 
         updateRemoteModelStatusUI()
@@ -500,6 +591,51 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        etCustomOfflineModel.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val custom = etCustomOfflineModel.text.toString().trim()
+                if (custom.isNotBlank()) {
+                    PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_OFFLINE_MODEL, custom)
+                }
+            }
+            false
+        }
+
+        etCustomOfflineModel.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val custom = etCustomOfflineModel.text.toString().trim()
+                if (custom.isNotBlank()) {
+                    PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_OFFLINE_MODEL, custom)
+                }
+            }
+        }
+
+        btnCustomOfflineModelHistory.setOnClickListener {
+            showHistoryDialog(
+                title = "Offline Model History",
+                historyKey = PreferencesManager.KEY_HISTORY_OFFLINE_MODEL,
+                currentValueGetter = { etCustomOfflineModel.text.toString().trim() },
+                onItemSelected = { selectedModel ->
+                    etCustomOfflineModel.setText(selectedModel)
+                    PreferencesManager.setCustomOfflineModel(this, selectedModel)
+                    PreferencesManager.setIsCustomOfflineModel(this, true)
+                    rbOfflineCustom.isChecked = true
+                    layoutCustomOfflineModelInput.visibility = View.VISIBLE
+                    rgOfflineModels.clearCheck()
+                    updateOfflineModelStatusUI()
+                    VibrationHelper.vibrateKey(this, 20L)
+                    Toast.makeText(this, "Selected: $selectedModel", Toast.LENGTH_SHORT).show()
+                },
+                onItemModified = { oldVal, newVal ->
+                    if (etCustomOfflineModel.text.toString().trim().equals(oldVal, ignoreCase = true)) {
+                        etCustomOfflineModel.setText(newVal)
+                        PreferencesManager.setCustomOfflineModel(this, newVal)
+                        updateOfflineModelStatusUI()
+                    }
+                }
+            )
+        }
+
         btnDownloadModel.setOnClickListener {
             startModelDownload()
         }
@@ -626,6 +762,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (ModelManager.isModelDownloading(modelInfo.fileName)) return
+
+        if (isCustom && customInput.isNotBlank()) {
+            PreferencesManager.addToHistory(this, PreferencesManager.KEY_HISTORY_OFFLINE_MODEL, customInput)
+        }
 
         updateOfflineModelStatusUI()
 
@@ -776,5 +916,180 @@ class MainActivity : AppCompatActivity() {
             btnSelectKeyboard.alpha = 1.0f
             btnSelectKeyboard.backgroundTintList = ColorStateList.valueOf(defaultBtnColor)
         }
+    }
+
+    private fun showHistoryDialog(
+        title: String,
+        historyKey: String,
+        currentValueGetter: () -> String,
+        onItemSelected: (String) -> Unit,
+        onItemModified: ((oldVal: String, newVal: String) -> Unit)? = null
+    ) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_history, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
+        val layoutHistoryList = dialogView.findViewById<LinearLayout>(R.id.layout_history_list)
+        val scrollHistory = dialogView.findViewById<View>(R.id.scroll_history)
+        val tvEmptyHistory = dialogView.findViewById<TextView>(R.id.tv_empty_history)
+        val btnAddEntry = dialogView.findViewById<Button>(R.id.btn_add_entry)
+        val btnClose = dialogView.findViewById<Button>(R.id.btn_close_dialog)
+
+        tvTitle.text = title
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun populateList() {
+            layoutHistoryList.removeAllViews()
+            val history = PreferencesManager.getHistory(this, historyKey)
+            val currentVal = currentValueGetter().trim()
+
+            if (history.isEmpty()) {
+                tvEmptyHistory.visibility = View.VISIBLE
+                scrollHistory.visibility = View.GONE
+            } else {
+                tvEmptyHistory.visibility = View.GONE
+                scrollHistory.visibility = View.VISIBLE
+
+                for (item in history) {
+                    val itemView = layoutInflater.inflate(R.layout.item_history_entry, layoutHistoryList, false)
+                    val tvValue = itemView.findViewById<TextView>(R.id.tv_history_value)
+                    val btnEdit = itemView.findViewById<ImageButton>(R.id.btn_edit_history_item)
+                    val btnDelete = itemView.findViewById<ImageButton>(R.id.btn_delete_history_item)
+
+                    val isCurrent = item.equals(currentVal, ignoreCase = true)
+                    tvValue.text = if (isCurrent) "✓ $item" else item
+                    if (isCurrent) {
+                        tvValue.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+                    } else {
+                        tvValue.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+                    }
+
+                    itemView.setOnClickListener {
+                        dialog.dismiss()
+                        onItemSelected(item)
+                    }
+
+                    btnEdit.setOnClickListener {
+                        showEditHistoryEntryDialog(item) { updatedValue ->
+                            PreferencesManager.updateHistoryItem(this, historyKey, item, updatedValue)
+                            onItemModified?.invoke(item, updatedValue)
+                            populateList()
+                            Toast.makeText(this, "Entry updated", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    btnDelete.setOnClickListener {
+                        MaterialAlertDialogBuilder(this)
+                            .setTitle("Delete from History?")
+                            .setMessage("Remove this item from history?\n\n$item")
+                            .setPositiveButton("Delete") { _, _ ->
+                                PreferencesManager.removeFromHistory(this, historyKey, item)
+                                populateList()
+                                Toast.makeText(this, "Removed from history", Toast.LENGTH_SHORT).show()
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    }
+
+                    layoutHistoryList.addView(itemView)
+                }
+            }
+        }
+
+        btnAddEntry.setOnClickListener {
+            val defaultVal = currentValueGetter().trim()
+            val history = PreferencesManager.getHistory(this, historyKey)
+            val prefill = if (defaultVal.isNotBlank() && !history.contains(defaultVal)) defaultVal else ""
+            showAddHistoryEntryDialog(prefill) { newEntry ->
+                PreferencesManager.addToHistory(this, historyKey, newEntry)
+                populateList()
+                Toast.makeText(this, "Added to history", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        populateList()
+        dialog.show()
+    }
+
+    private fun showEditHistoryEntryDialog(
+        initialValue: String,
+        onSave: (String) -> Unit
+    ) {
+        val input = EditText(this).apply {
+            setText(initialValue)
+            setSelection(initialValue.length)
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            setBackgroundResource(R.drawable.bg_punct_key)
+            val padH = (14 * resources.displayMetrics.density).toInt()
+            val padV = (12 * resources.displayMetrics.density).toInt()
+            setPadding(padH, padV, padH, padV)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+
+        val container = FrameLayout(this).apply {
+            val padH = (20 * resources.displayMetrics.density).toInt()
+            val padTop = (12 * resources.displayMetrics.density).toInt()
+            val padBottom = (4 * resources.displayMetrics.density).toInt()
+            setPadding(padH, padTop, padH, padBottom)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Edit History Entry")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newValue = input.text.toString().trim()
+                if (newValue.isNotBlank()) {
+                    onSave(newValue)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showAddHistoryEntryDialog(
+        defaultText: String,
+        onAdd: (String) -> Unit
+    ) {
+        val input = EditText(this).apply {
+            setText(defaultText)
+            if (defaultText.isNotEmpty()) setSelection(defaultText.length)
+            hint = "Enter URL or Model ID"
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            setBackgroundResource(R.drawable.bg_punct_key)
+            val padH = (14 * resources.displayMetrics.density).toInt()
+            val padV = (12 * resources.displayMetrics.density).toInt()
+            setPadding(padH, padV, padH, padV)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+
+        val container = FrameLayout(this).apply {
+            val padH = (20 * resources.displayMetrics.density).toInt()
+            val padTop = (12 * resources.displayMetrics.density).toInt()
+            val padBottom = (4 * resources.displayMetrics.density).toInt()
+            setPadding(padH, padTop, padH, padBottom)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Add to History")
+            .setView(container)
+            .setPositiveButton("Add") { _, _ ->
+                val newValue = input.text.toString().trim()
+                if (newValue.isNotBlank()) {
+                    onAdd(newValue)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }

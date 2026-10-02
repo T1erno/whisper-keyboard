@@ -147,11 +147,23 @@
                         android:textColorHint="@color/text_secondary"
                         android:textSize="14sp" />
 
+                    <ImageButton
+                        android:id="@+id/btn_server_url_history"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_punct_key"
+                        android:contentDescription="Server URL History"
+                        android:padding="12dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_history"
+                        app:tint="@color/text_secondary" />
+
                     <View
                         android:id="@+id/v_status_dot"
                         android:layout_width="16dp"
                         android:layout_height="16dp"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="10dp"
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_status_dot_checking"
                         android:contentDescription="Server Connection Status Dot" />
@@ -281,13 +293,15 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="28dp"
                         android:layout_marginTop="4dp"
-                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
                         android:visibility="gone">
 
                         <EditText
                             android:id="@+id/et_custom_remote_model"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="44dp"
+                            android:layout_weight="1"
                             android:background="@drawable/bg_punct_key"
                             android:hint="e.g. Systran/faster-whisper-small"
                             android:inputType="textUri|textNoSuggestions"
@@ -296,6 +310,18 @@
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="13sp" />
+
+                        <ImageButton
+                            android:id="@+id/btn_custom_remote_model_history"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_punct_key"
+                            android:contentDescription="Remote Model History"
+                            android:padding="10dp"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_history"
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -424,13 +450,15 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="28dp"
                         android:layout_marginTop="4dp"
-                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
                         android:visibility="gone">
 
                         <EditText
                             android:id="@+id/et_custom_offline_model"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="44dp"
+                            android:layout_weight="1"
                             android:background="@drawable/bg_punct_key"
                             android:hint="e.g. ggerganov/whisper.cpp/ggml-medium.en.bin"
                             android:inputType="textUri|textNoSuggestions"
@@ -439,6 +467,18 @@
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="13sp" />
+
+                        <ImageButton
+                            android:id="@+id/btn_custom_offline_model_history"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_punct_key"
+                            android:contentDescription="Offline Model History"
+                            android:padding="10dp"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_history"
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </LinearLayout>
 

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_punct_key"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="6dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/tv_history_value"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:fontFamily="monospace"
+        android:maxLines="2"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp" />
+
+    <ImageButton
+        android:id="@+id/btn_edit_history_item"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Edit"
+        android:padding="6dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_edit"
+        app:tint="@color/text_secondary" />
+
+    <ImageButton
+        android:id="@+id/btn_delete_history_item"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="2dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete"
+        android:padding="6dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_delete"
+        app:tint="#F87171" />
+</LinearLayout>

@@ -3,6 +3,7 @@ package com.t1erno.whisperkeyboard
 import android.content.Context
 import android.content.SharedPreferences
 import com.t1erno.whisperkeyboard.nativeengine.ModelManager
+import org.json.JSONArray
 
 object PreferencesManager {
 
@@ -22,6 +23,10 @@ object PreferencesManager {
     private const val KEY_IS_CUSTOM_REMOTE_MODEL = "is_custom_remote_model"
     private const val KEY_CUSTOM_OFFLINE_MODEL = "custom_offline_model"
     private const val KEY_IS_CUSTOM_OFFLINE_MODEL = "is_custom_offline_model"
+
+    const val KEY_HISTORY_SERVER_URL = "history_server_url"
+    const val KEY_HISTORY_REMOTE_MODEL = "history_remote_model"
+    const val KEY_HISTORY_OFFLINE_MODEL = "history_offline_model"
 
     private const val DEFAULT_URL = "https://whisper.t1erno.com/"
     private const val DEFAULT_REMOTE_MODEL = "large-v3-turbo"
@@ -142,5 +147,104 @@ object PreferencesManager {
 
     fun setSelectedModelFileName(context: Context, fileName: String) {
         getPreferences(context).edit().putString(KEY_SELECTED_MODEL, fileName).apply()
+    }
+
+    fun getHistory(context: Context, key: String): List<String> {
+        val jsonString = getPreferences(context).getString(key, null)
+        if (jsonString.isNullOrBlank()) {
+            val defaults = getDefaultHistory(context, key)
+            if (defaults.isNotEmpty()) {
+                saveHistory(context, key, defaults)
+            }
+            return defaults
+        }
+        return try {
+            val array = JSONArray(jsonString)
+            val list = mutableListOf<String>()
+            for (i in 0 until array.length()) {
+                val item = array.optString(i)
+                if (!item.isNullOrBlank()) {
+                    list.add(item.trim())
+                }
+            }
+            if (list.isEmpty()) {
+                val defaults = getDefaultHistory(context, key)
+                if (defaults.isNotEmpty()) {
+                    saveHistory(context, key, defaults)
+                }
+                defaults
+            } else {
+                list
+            }
+        } catch (_: Exception) {
+            getDefaultHistory(context, key)
+        }
+    }
+
+    private fun getDefaultHistory(context: Context, key: String): List<String> {
+        return when (key) {
+            KEY_HISTORY_SERVER_URL -> {
+                val current = getServerUrl(context)
+                listOfNotNull(current, if (current != DEFAULT_URL) DEFAULT_URL else null).distinct()
+            }
+            KEY_HISTORY_REMOTE_MODEL -> {
+                val current = getCustomRemoteModel(context)
+                val list = mutableListOf<String>()
+                if (current.isNotBlank()) list.add(current)
+                list.add("Systran/faster-whisper-small")
+                list.add("deepdml/faster-whisper-large-v3-turbo-ct2")
+                list.distinct()
+            }
+            KEY_HISTORY_OFFLINE_MODEL -> {
+                val current = getCustomOfflineModel(context)
+                val list = mutableListOf<String>()
+                if (current.isNotBlank()) list.add(current)
+                list.add("ggerganov/whisper.cpp/ggml-medium.en.bin")
+                list.add("ggerganov/whisper.cpp/ggml-large-v3-turbo-q5_0.bin")
+                list.distinct()
+            }
+            else -> emptyList()
+        }
+    }
+
+    fun saveHistory(context: Context, key: String, list: List<String>) {
+        val array = JSONArray()
+        for (item in list) {
+            val trimmed = item.trim()
+            if (trimmed.isNotBlank()) {
+                array.put(trimmed)
+            }
+        }
+        getPreferences(context).edit().putString(key, array.toString()).apply()
+    }
+
+    fun addToHistory(context: Context, key: String, item: String) {
+        val trimmed = item.trim()
+        if (trimmed.isBlank()) return
+        val current = getHistory(context, key).toMutableList()
+        current.remove(trimmed)
+        current.add(0, trimmed)
+        if (current.size > 50) {
+            current.subList(50, current.size).clear()
+        }
+        saveHistory(context, key, current)
+    }
+
+    fun updateHistoryItem(context: Context, key: String, oldItem: String, newItem: String) {
+        val trimmedNew = newItem.trim()
+        if (trimmedNew.isBlank()) return
+        val current = getHistory(context, key).toMutableList()
+        val index = current.indexOf(oldItem)
+        if (index != -1) {
+            current[index] = trimmedNew
+            saveHistory(context, key, current)
+        }
+    }
+
+    fun removeFromHistory(context: Context, key: String, item: String) {
+        val current = getHistory(context, key).toMutableList()
+        if (current.remove(item)) {
+            saveHistory(context, key, current)
+        }
     }
 }
