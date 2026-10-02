@@ -2,6 +2,7 @@ package com.t1erno.whisperkeyboard
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import org.json.JSONArray
 
@@ -48,7 +49,7 @@ object PreferencesManager {
         if (cleanUrl.isNotEmpty() && !cleanUrl.endsWith("/")) {
             cleanUrl += "/"
         }
-        getPreferences(context).edit().putString(KEY_SERVER_URL, cleanUrl).apply()
+        getPreferences(context).edit { putString(KEY_SERVER_URL, cleanUrl) }
     }
 
     fun isHapticEnabled(context: Context): Boolean {
@@ -56,7 +57,7 @@ object PreferencesManager {
     }
 
     fun setHapticEnabled(context: Context, enabled: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_HAPTIC_ENABLED, enabled).apply()
+        getPreferences(context).edit { putBoolean(KEY_HAPTIC_ENABLED, enabled) }
     }
 
     fun isAutoSendOnSilenceEnabled(context: Context): Boolean {
@@ -64,7 +65,7 @@ object PreferencesManager {
     }
 
     fun setAutoSendOnSilenceEnabled(context: Context, enabled: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_AUTO_SEND_SILENCE, enabled).apply()
+        getPreferences(context).edit { putBoolean(KEY_AUTO_SEND_SILENCE, enabled) }
     }
 
     fun getEngineMode(context: Context): EngineMode {
@@ -77,7 +78,7 @@ object PreferencesManager {
     }
 
     fun setEngineMode(context: Context, mode: EngineMode) {
-        getPreferences(context).edit().putString(KEY_ENGINE_MODE, mode.name).apply()
+        getPreferences(context).edit { putString(KEY_ENGINE_MODE, mode.name) }
     }
 
     fun getRemoteModel(context: Context): String {
@@ -89,7 +90,7 @@ object PreferencesManager {
     }
 
     fun setRemoteModel(context: Context, model: String) {
-        getPreferences(context).edit().putString(KEY_REMOTE_MODEL, model.trim()).apply()
+        getPreferences(context).edit { putString(KEY_REMOTE_MODEL, model.trim()) }
     }
 
     fun getCustomRemoteModel(context: Context): String {
@@ -97,7 +98,7 @@ object PreferencesManager {
     }
 
     fun setCustomRemoteModel(context: Context, customModel: String) {
-        getPreferences(context).edit().putString(KEY_CUSTOM_REMOTE_MODEL, customModel.trim()).apply()
+        getPreferences(context).edit { putString(KEY_CUSTOM_REMOTE_MODEL, customModel.trim()) }
     }
 
     fun isCustomRemoteModel(context: Context): Boolean {
@@ -105,7 +106,7 @@ object PreferencesManager {
     }
 
     fun setIsCustomRemoteModel(context: Context, isCustom: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_IS_CUSTOM_REMOTE_MODEL, isCustom).apply()
+        getPreferences(context).edit { putBoolean(KEY_IS_CUSTOM_REMOTE_MODEL, isCustom) }
     }
 
     fun getCustomOfflineModel(context: Context): String {
@@ -113,7 +114,7 @@ object PreferencesManager {
     }
 
     fun setCustomOfflineModel(context: Context, customModel: String) {
-        getPreferences(context).edit().putString(KEY_CUSTOM_OFFLINE_MODEL, customModel.trim()).apply()
+        getPreferences(context).edit { putString(KEY_CUSTOM_OFFLINE_MODEL, customModel.trim()) }
     }
 
     fun isCustomOfflineModel(context: Context): Boolean {
@@ -121,7 +122,7 @@ object PreferencesManager {
     }
 
     fun setIsCustomOfflineModel(context: Context, isCustom: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_IS_CUSTOM_OFFLINE_MODEL, isCustom).apply()
+        getPreferences(context).edit { putBoolean(KEY_IS_CUSTOM_OFFLINE_MODEL, isCustom) }
     }
 
     fun getSelectedOfflineModel(context: Context): String {
@@ -146,7 +147,7 @@ object PreferencesManager {
     }
 
     fun setSelectedModelFileName(context: Context, fileName: String) {
-        getPreferences(context).edit().putString(KEY_SELECTED_MODEL, fileName).apply()
+        getPreferences(context).edit { putString(KEY_SELECTED_MODEL, fileName) }
     }
 
     fun getHistory(context: Context, key: String): List<String> {
@@ -215,7 +216,7 @@ object PreferencesManager {
                 array.put(trimmed)
             }
         }
-        getPreferences(context).edit().putString(key, array.toString()).apply()
+        getPreferences(context).edit { putString(key, array.toString()) }
     }
 
     fun addToHistory(context: Context, key: String, item: String) {

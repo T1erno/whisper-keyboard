@@ -1,5 +1,6 @@
 package com.t1erno.whisperkeyboard.ui
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -21,6 +22,7 @@ class PunctuationKeyManager(private val onCommitText: (String) -> Unit) {
 
     private val longPressHandler = Handler(Looper.getMainLooper())
 
+    @SuppressLint("InflateParams", "ClickableViewAccessibility", "UseKtx")
     fun setupPunctuationKeys(rootView: View, themedContext: Context) {
         val punctuationKeys = listOf(
             KeySpec(R.id.key_comma, ", ", listOf(", ", "; ", "< ", "{ ")),

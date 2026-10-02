@@ -62,6 +62,18 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    lint {
+        disable.addAll(
+            listOf(
+                "OldTargetApi",
+                "GradleDependency",
+                "NewerVersionAvailable",
+                "AndroidGradlePluginVersion",
+                "UnusedResources"
+            )
+        )
+    }
 }
 
 dependencies {

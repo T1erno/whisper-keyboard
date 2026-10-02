@@ -32,15 +32,9 @@ object VibrationHelper {
                         .build()
                     val effect = VibrationEffect.createOneShot(durationMs, 255)
                     vibrator.vibrate(effect, attrs)
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val effect = VibrationEffect.createOneShot(durationMs, 255)
-                    val attrs = VibrationAttributes.Builder()
-                        .setUsage(VibrationAttributes.USAGE_ALARM)
-                        .build()
-                    vibrator.vibrate(effect, attrs)
                 } else {
-                    @Suppress("DEPRECATION")
-                    vibrator.vibrate(durationMs)
+                    val effect = VibrationEffect.createOneShot(durationMs, 255)
+                    vibrator.vibrate(effect)
                 }
             } else {
                 Log.w(TAG, "No vibrator hardware detected on device")

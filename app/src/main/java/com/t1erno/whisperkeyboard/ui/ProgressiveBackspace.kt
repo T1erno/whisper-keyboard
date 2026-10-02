@@ -47,6 +47,7 @@ class ProgressiveBackspace(
         }
     }
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     fun bind(backspaceButton: View) {
         backspaceButton.setOnTouchListener { _, event ->
             when (event.action) {

@@ -4,8 +4,8 @@
     <string name="subtype_voice">Voice Input</string>
 
     <string name="status_idle">Tap or hold microphone to dictate</string>
-    <string name="status_recording">Listening... Tap to stop</string>
-    <string name="status_transcribing">Transcribing audio...</string>
+    <string name="status_recording">Listening&#8230; Tap to stop</string>
+    <string name="status_transcribing">Transcribing audio&#8230;</string>
     <string name="status_error">Error during transcription</string>
 
     <!-- MainActivity Strings -->
@@ -18,5 +18,5 @@
     <string name="step_2_btn">Open Keyboard Settings</string>
     <string name="step_3_title">3. Select Active Keyboard</string>
     <string name="step_3_btn">Choose Input Method</string>
-    <string name="test_field_hint">Test your voice keyboard here...</string>
+    <string name="test_field_hint">Test your voice keyboard here&#8230;</string>
 </resources>

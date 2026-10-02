@@ -20,6 +20,7 @@ class SpacebarTouchListener(
     // Preferred column index to maintain straight vertical up/down movement
     private var preferredColumn: Int = -1
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {

@@ -9,7 +9,8 @@
     android:paddingStart="8dp"
     android:paddingTop="8dp"
     android:paddingEnd="8dp"
-    android:paddingBottom="12dp">
+    android:paddingBottom="12dp"
+    tools:ignore="HardcodedText">
 
     <!-- Top Card Container for Voice Dictation -->
     <LinearLayout
@@ -103,6 +104,7 @@
             android:layout_width="0dp"
             android:layout_height="46dp"
             android:layout_weight="1"
+            android:paddingStart="0dp"
             android:paddingEnd="2dp">
 
             <TextView
@@ -182,7 +184,8 @@
             android:layout_width="0dp"
             android:layout_height="46dp"
             android:layout_weight="1"
-            android:paddingStart="2dp">
+            android:paddingStart="2dp"
+            android:paddingEnd="0dp">
 
             <TextView
                 android:id="@+id/key_quotes"

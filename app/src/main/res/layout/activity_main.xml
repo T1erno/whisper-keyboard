@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/keyboard_bg"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    tools:ignore="HardcodedText,TooManyViews">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,6 +18,7 @@
             android:layout_height="56dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="20dp"
+            android:contentDescription="@null"
             android:src="@drawable/ic_mic"
             app:tint="@color/accent_purple" />
 
@@ -140,6 +141,7 @@
                         android:layout_weight="1"
                         android:background="@drawable/bg_punct_key"
                         android:hint="https://whisper.t1erno.com/"
+                        android:importantForAutofill="no"
                         android:inputType="textUri"
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp"
@@ -304,6 +306,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_punct_key"
                             android:hint="e.g. Systran/faster-whisper-small"
+                            android:importantForAutofill="no"
                             android:inputType="textUri|textNoSuggestions"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
@@ -461,6 +464,7 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_punct_key"
                             android:hint="e.g. ggerganov/whisper.cpp/ggml-medium.en.bin"
+                            android:importantForAutofill="no"
                             android:inputType="textUri|textNoSuggestions"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
@@ -759,6 +763,7 @@
             android:background="@drawable/bg_punct_key"
             android:gravity="top|start"
             android:hint="@string/test_field_hint"
+            android:importantForAutofill="no"
             android:inputType="textMultiLine"
             android:overScrollMode="always"
             android:padding="14dp"

@@ -1,6 +1,7 @@
 package com.t1erno.whisperkeyboard
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -36,6 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+@SuppressLint("SetTextI18n")
 class VoiceInputMethodService : InputMethodService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -85,6 +87,7 @@ class VoiceInputMethodService : InputMethodService() {
         toneGenerator = null
     }
 
+    @SuppressLint("InflateParams")
     override fun onCreateInputView(): View {
         val themedContext = ContextThemeWrapper(this, R.style.Theme_WhisperKeyboard)
         val view = LayoutInflater.from(themedContext).inflate(R.layout.input_view, null)
@@ -109,6 +112,7 @@ class VoiceInputMethodService : InputMethodService() {
         return view
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupMicButton() {
         btnMic?.setOnTouchListener { _, event ->
             when (event.action) {

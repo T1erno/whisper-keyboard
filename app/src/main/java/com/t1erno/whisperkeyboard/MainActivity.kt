@@ -1,6 +1,9 @@
+@file:Suppress("SpellCheckingInspection")
+
 package com.t1erno.whisperkeyboard
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -34,7 +37,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
-import com.t1erno.whisperkeyboard.network.ServerModelsResponse
 import com.t1erno.whisperkeyboard.network.TcpPingHelper
 import com.t1erno.whisperkeyboard.network.TcpPingHelper.toHumanReadablePingError
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
@@ -44,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+@SuppressLint("SetTextI18n")
 class MainActivity : AppCompatActivity() {
 
     private lateinit var etServerUrl: EditText
@@ -255,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupTestInputScrolling() {
         // Keep default ArrowKeyMovementMethod to preserve full text selection, handles & context action bar
         etTestInput.setOnTouchListener { v, event ->
