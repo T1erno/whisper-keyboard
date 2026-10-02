@@ -709,18 +709,19 @@ class MainActivity : AppCompatActivity() {
         if (isCustom && customInput.isBlank()) {
             tvOfflineModelStatus.text = "Enter custom Hugging Face repo ID or model URL above"
             tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            tvOfflineModelStatus.visibility = View.VISIBLE
             btnDownloadModel.visibility = View.GONE
             btnDeleteModel.visibility = View.GONE
         } else if (isDownloaded) {
             val size = ModelManager.getDownloadedModelSizeFormatted(this, modelInfo.fileName)
             tvOfflineModelStatus.text = "✓ Offline model ready on device: ${modelInfo.name} ($size)"
             tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            tvOfflineModelStatus.visibility = View.VISIBLE
             btnDownloadModel.visibility = View.GONE
             btnDeleteModel.visibility = View.VISIBLE
             btnDeleteModel.text = "DELETE MODEL FILE ($size)"
         } else if (isDownloading) {
-            tvOfflineModelStatus.text = "Downloading model for Offline Edge... ${progress ?: 0}%"
-            tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            tvOfflineModelStatus.visibility = View.GONE
             btnDownloadModel.visibility = View.VISIBLE
             btnDownloadModel.isEnabled = false
             btnDownloadModel.text = "DOWNLOADING ${modelInfo.name.uppercase()}..."
@@ -728,6 +729,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             tvOfflineModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
             tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            tvOfflineModelStatus.visibility = View.VISIBLE
             btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
             btnDownloadModel.visibility = View.VISIBLE
             btnDownloadModel.isEnabled = true
@@ -736,31 +738,65 @@ class MainActivity : AppCompatActivity() {
 
         // Dynamically render a progress bar for each active download
         layoutActiveDownloads.removeAllViews()
-        for (model in ModelManager.AVAILABLE_MODELS) {
-            if (ModelManager.isModelDownloading(model.fileName)) {
-                val prog = ModelManager.getDownloadProgress(model.fileName) ?: 0
-
-                val label = TextView(this).apply {
-                    text = "Downloading ${model.name}... $prog%"
-                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
-                    textSize = 12f
-                    setPadding(0, 8, 0, 4)
-                }
-
-                val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-                    max = 100
-                    progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.accent_purple))
-                    progressBackgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.key_bg))
-                    setProgress(prog)
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-                }
-
-                layoutActiveDownloads.addView(label)
-                layoutActiveDownloads.addView(pb)
+        val allDownloadingModels = mutableListOf<ModelManager.ModelInfo>()
+        for (m in ModelManager.AVAILABLE_MODELS) {
+            if (ModelManager.isModelDownloading(m.fileName)) {
+                allDownloadingModels.add(m)
             }
+        }
+        if (isCustom && ModelManager.isModelDownloading(modelInfo.fileName) && allDownloadingModels.none { it.fileName == modelInfo.fileName }) {
+            allDownloadingModels.add(modelInfo)
+        }
+
+        for (model in allDownloadingModels) {
+            val prog = ModelManager.getDownloadProgress(model.fileName) ?: 0
+
+            val headerLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = (10 * resources.displayMetrics.density).toInt()
+                    bottomMargin = (4 * resources.displayMetrics.density).toInt()
+                }
+            }
+
+            val tvName = TextView(this).apply {
+                text = model.name
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+                textSize = 13f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+
+            val tvPercent = TextView(this).apply {
+                text = "$prog%"
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_purple))
+                textSize = 13f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            headerLayout.addView(tvName)
+            headerLayout.addView(tvPercent)
+
+            val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 100
+                progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.accent_purple))
+                progressBackgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.key_bg))
+                setProgress(prog)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            layoutActiveDownloads.addView(headerLayout)
+            layoutActiveDownloads.addView(pb)
         }
     }
 
