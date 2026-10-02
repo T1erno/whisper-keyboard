@@ -20,6 +20,8 @@ object PreferencesManager {
     private const val KEY_REMOTE_MODEL = "remote_model"
     private const val KEY_CUSTOM_REMOTE_MODEL = "custom_remote_model"
     private const val KEY_IS_CUSTOM_REMOTE_MODEL = "is_custom_remote_model"
+    private const val KEY_CUSTOM_OFFLINE_MODEL = "custom_offline_model"
+    private const val KEY_IS_CUSTOM_OFFLINE_MODEL = "is_custom_offline_model"
 
     private const val DEFAULT_URL = "https://whisper.t1erno.com/"
     private const val DEFAULT_REMOTE_MODEL = "large-v3-turbo"
@@ -101,7 +103,29 @@ object PreferencesManager {
         getPreferences(context).edit().putBoolean(KEY_IS_CUSTOM_REMOTE_MODEL, isCustom).apply()
     }
 
+    fun getCustomOfflineModel(context: Context): String {
+        return getPreferences(context).getString(KEY_CUSTOM_OFFLINE_MODEL, "") ?: ""
+    }
+
+    fun setCustomOfflineModel(context: Context, customModel: String) {
+        getPreferences(context).edit().putString(KEY_CUSTOM_OFFLINE_MODEL, customModel.trim()).apply()
+    }
+
+    fun isCustomOfflineModel(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_IS_CUSTOM_OFFLINE_MODEL, false)
+    }
+
+    fun setIsCustomOfflineModel(context: Context, isCustom: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_IS_CUSTOM_OFFLINE_MODEL, isCustom).apply()
+    }
+
     fun getSelectedOfflineModel(context: Context): String {
+        if (isCustomOfflineModel(context)) {
+            val custom = getCustomOfflineModel(context)
+            if (custom.isNotBlank()) {
+                return ModelManager.extractFileName(custom)
+            }
+        }
         return getSelectedModelFileName(context)
     }
 

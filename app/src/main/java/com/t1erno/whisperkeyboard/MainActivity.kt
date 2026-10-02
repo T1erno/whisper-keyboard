@@ -76,6 +76,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbOfflineSmall: RadioButton
     private lateinit var rbOfflineBase: RadioButton
     private lateinit var rbOfflineTiny: RadioButton
+    private lateinit var rbOfflineCustom: RadioButton
+    private lateinit var layoutCustomOfflineModelInput: LinearLayout
+    private lateinit var etCustomOfflineModel: EditText
     private lateinit var tvOfflineModelStatus: TextView
     private lateinit var layoutActiveDownloads: LinearLayout
     private lateinit var btnDownloadModel: MaterialButton
@@ -138,6 +141,9 @@ class MainActivity : AppCompatActivity() {
         rbOfflineSmall = findViewById(R.id.rb_offline_small)
         rbOfflineBase = findViewById(R.id.rb_offline_base)
         rbOfflineTiny = findViewById(R.id.rb_offline_tiny)
+        rbOfflineCustom = findViewById(R.id.rb_offline_custom)
+        layoutCustomOfflineModelInput = findViewById(R.id.layout_custom_offline_model_input)
+        etCustomOfflineModel = findViewById(R.id.et_custom_offline_model)
         tvOfflineModelStatus = findViewById(R.id.tv_offline_model_status)
         layoutActiveDownloads = findViewById(R.id.layout_active_downloads)
         btnDownloadModel = findViewById(R.id.btn_download_model)
@@ -434,29 +440,64 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupOfflineModelSelectionUI() {
         val currentModel = PreferencesManager.getSelectedOfflineModel(this)
-        when (currentModel) {
-            ModelManager.MODEL_LARGE_V3.fileName -> rbOfflineLargeV3.isChecked = true
-            ModelManager.MODEL_MEDIUM.fileName -> rbOfflineMedium.isChecked = true
-            ModelManager.MODEL_SMALL.fileName -> rbOfflineSmall.isChecked = true
-            ModelManager.MODEL_BASE.fileName -> rbOfflineBase.isChecked = true
-            ModelManager.MODEL_TINY.fileName -> rbOfflineTiny.isChecked = true
-            else -> rbOfflineLargeTurbo.isChecked = true
+        val isCustom = PreferencesManager.isCustomOfflineModel(this)
+
+        if (isCustom) {
+            rbOfflineCustom.isChecked = true
+            layoutCustomOfflineModelInput.visibility = View.VISIBLE
+            rgOfflineModels.clearCheck()
+        } else {
+            rbOfflineCustom.isChecked = false
+            layoutCustomOfflineModelInput.visibility = View.GONE
+            when (currentModel) {
+                ModelManager.MODEL_LARGE_V3.fileName -> rbOfflineLargeV3.isChecked = true
+                ModelManager.MODEL_MEDIUM.fileName -> rbOfflineMedium.isChecked = true
+                ModelManager.MODEL_SMALL.fileName -> rbOfflineSmall.isChecked = true
+                ModelManager.MODEL_BASE.fileName -> rbOfflineBase.isChecked = true
+                ModelManager.MODEL_TINY.fileName -> rbOfflineTiny.isChecked = true
+                else -> rbOfflineLargeTurbo.isChecked = true
+            }
         }
 
         rgOfflineModels.setOnCheckedChangeListener { _, checkedId ->
-            val selectedModel = when (checkedId) {
-                R.id.rb_offline_large_v3 -> ModelManager.MODEL_LARGE_V3
-                R.id.rb_offline_medium -> ModelManager.MODEL_MEDIUM
-                R.id.rb_offline_small -> ModelManager.MODEL_SMALL
-                R.id.rb_offline_base -> ModelManager.MODEL_BASE
-                R.id.rb_offline_tiny -> ModelManager.MODEL_TINY
-                else -> ModelManager.MODEL_LARGE_V3_TURBO
-            }
+            if (checkedId != -1) {
+                rbOfflineCustom.isChecked = false
+                layoutCustomOfflineModelInput.visibility = View.GONE
+                PreferencesManager.setIsCustomOfflineModel(this, false)
 
-            PreferencesManager.setSelectedOfflineModel(this, selectedModel.fileName)
-            OnDeviceTranscriber.releaseContext()
+                val selectedModel = when (checkedId) {
+                    R.id.rb_offline_large_v3 -> ModelManager.MODEL_LARGE_V3
+                    R.id.rb_offline_medium -> ModelManager.MODEL_MEDIUM
+                    R.id.rb_offline_small -> ModelManager.MODEL_SMALL
+                    R.id.rb_offline_base -> ModelManager.MODEL_BASE
+                    R.id.rb_offline_tiny -> ModelManager.MODEL_TINY
+                    else -> ModelManager.MODEL_LARGE_V3_TURBO
+                }
+
+                PreferencesManager.setSelectedOfflineModel(this, selectedModel.fileName)
+                OnDeviceTranscriber.releaseContext()
+                VibrationHelper.vibrateKey(this, 20L)
+                updateOfflineModelStatusUI()
+            }
+        }
+
+        rbOfflineCustom.setOnClickListener {
+            rgOfflineModels.clearCheck()
+            rbOfflineCustom.isChecked = true
+            layoutCustomOfflineModelInput.visibility = View.VISIBLE
+            PreferencesManager.setIsCustomOfflineModel(this, true)
             VibrationHelper.vibrateKey(this, 20L)
             updateOfflineModelStatusUI()
+        }
+
+        etCustomOfflineModel.setText(PreferencesManager.getCustomOfflineModel(this))
+        etCustomOfflineModel.doAfterTextChanged { text ->
+            val custom = text?.toString()?.trim() ?: ""
+            PreferencesManager.setCustomOfflineModel(this, custom)
+            if (rbOfflineCustom.isChecked) {
+                PreferencesManager.setIsCustomOfflineModel(this, true)
+                updateOfflineModelStatusUI()
+            }
         }
 
         btnDownloadModel.setOnClickListener {
@@ -464,15 +505,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnDeleteModel.setOnClickListener {
+            val isCustomActive = PreferencesManager.isCustomOfflineModel(this)
             val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
-            val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
-            val sizeFormatted = ModelManager.getDownloadedModelSizeFormatted(this, selectedFileName)
+            val customInput = PreferencesManager.getCustomOfflineModel(this)
+            val modelInfo = if (isCustomActive) {
+                ModelManager.buildCustomModelInfo(customInput.ifEmpty { selectedFileName })
+            } else {
+                ModelManager.getModelInfoByFileName(selectedFileName)
+            }
+            val sizeFormatted = ModelManager.getDownloadedModelSizeFormatted(this, modelInfo.fileName)
 
             MaterialAlertDialogBuilder(this)
                 .setTitle("Delete ${modelInfo.name}?")
                 .setMessage("Delete local model file ($sizeFormatted) to free storage space on your phone?")
                 .setPositiveButton("Delete") { _, _ ->
-                    ModelManager.deleteModel(this, selectedFileName)
+                    ModelManager.deleteModel(this, modelInfo.fileName)
                     OnDeviceTranscriber.releaseContext()
                     Toast.makeText(this, "${modelInfo.name} deleted to free space", Toast.LENGTH_SHORT).show()
                     updateOfflineModelStatusUI()
@@ -485,11 +532,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateOfflineModelStatusUI() {
+        val isCustom = PreferencesManager.isCustomOfflineModel(this)
         val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
-        val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
-        val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
-        val isDownloading = ModelManager.isModelDownloading(selectedFileName)
-        val progress = ModelManager.getDownloadProgress(selectedFileName)
+        val customInput = PreferencesManager.getCustomOfflineModel(this)
+        val modelInfo = if (isCustom) {
+            ModelManager.buildCustomModelInfo(customInput.ifEmpty { selectedFileName })
+        } else {
+            ModelManager.getModelInfoByFileName(selectedFileName)
+        }
+        val isDownloaded = ModelManager.isModelDownloaded(this, modelInfo.fileName)
+        val isDownloading = ModelManager.isModelDownloading(modelInfo.fileName)
+        val progress = ModelManager.getDownloadProgress(modelInfo.fileName)
 
         val modelsMap = listOf(
             rbOfflineLargeV3 to ModelManager.MODEL_LARGE_V3,
@@ -506,8 +559,13 @@ class MainActivity : AppCompatActivity() {
             rb.text = "${model.name} • ${model.description}$statusTag"
         }
 
-        if (isDownloaded) {
-            val size = ModelManager.getDownloadedModelSizeFormatted(this, selectedFileName)
+        if (isCustom && customInput.isBlank()) {
+            tvOfflineModelStatus.text = "Enter custom Hugging Face repo ID or model URL above"
+            tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnDownloadModel.visibility = View.GONE
+            btnDeleteModel.visibility = View.GONE
+        } else if (isDownloaded) {
+            val size = ModelManager.getDownloadedModelSizeFormatted(this, modelInfo.fileName)
             tvOfflineModelStatus.text = "✓ Offline model ready on device: ${modelInfo.name} ($size)"
             tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
@@ -558,10 +616,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startModelDownload() {
+        val isCustom = PreferencesManager.isCustomOfflineModel(this)
         val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
-        val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+        val customInput = PreferencesManager.getCustomOfflineModel(this)
+        val modelInfo = if (isCustom) {
+            ModelManager.buildCustomModelInfo(customInput.ifEmpty { selectedFileName })
+        } else {
+            ModelManager.getModelInfoByFileName(selectedFileName)
+        }
 
-        if (ModelManager.isModelDownloading(selectedFileName)) return
+        if (ModelManager.isModelDownloading(modelInfo.fileName)) return
 
         updateOfflineModelStatusUI()
 

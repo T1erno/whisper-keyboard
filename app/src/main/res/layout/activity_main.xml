@@ -203,15 +203,6 @@
                     android:textColor="@color/text_primary"
                     android:textSize="16sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:fontFamily="sans-serif"
-                    android:text="Executed on server • 0 MB downloaded on phone"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
                 <!-- Dynamic Server Models RadioGroup -->
                 <RadioGroup
                     android:id="@+id/rg_remote_models"
@@ -305,15 +296,6 @@
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:fontFamily="sans-serif"
-                            android:text="Passes custom repo or model key via ?model= query parameter"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -420,6 +402,45 @@
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
                 </RadioGroup>
+
+                <!-- Custom Hugging Face / Offline GGUF/GGML Model Option Container -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/rb_offline_custom"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Custom / Other Model • Hugging Face repo ID"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_custom_offline_model_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <EditText
+                            android:id="@+id/et_custom_offline_model"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_punct_key"
+                            android:hint="e.g. ggerganov/whisper.cpp/ggml-medium.en.bin"
+                            android:inputType="textUri|textNoSuggestions"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tv_offline_model_status"

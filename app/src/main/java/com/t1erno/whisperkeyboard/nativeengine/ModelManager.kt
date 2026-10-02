@@ -138,8 +138,41 @@ object ModelManager {
         return activeDownloads.size
     }
 
+    fun extractFileName(input: String): String {
+        val trimmed = input.trim()
+        val afterSlash = trimmed.substringAfterLast("/")
+        return if (afterSlash.isNotEmpty()) afterSlash else "custom-model.bin"
+    }
+
+    fun buildCustomModelInfo(input: String): ModelInfo {
+        val trimmed = input.trim()
+        val fileName = extractFileName(trimmed)
+        val url = when {
+            trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true) -> trimmed
+            trimmed.contains("/") -> {
+                val parts = trimmed.split("/")
+                if (parts.size >= 3) {
+                    "https://huggingface.co/${parts[0]}/${parts[1]}/resolve/main/${parts.drop(2).joinToString("/")}"
+                } else if (parts.size == 2) {
+                    "https://huggingface.co/${parts[0]}/${parts[1]}/resolve/main/$fileName"
+                } else {
+                    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$fileName"
+                }
+            }
+            else -> "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$fileName"
+        }
+        val cleanName = fileName.removeSuffix(".bin").removeSuffix(".gguf").replace("-", " ")
+        return ModelInfo(
+            name = cleanName.ifEmpty { "Custom Model" },
+            fileName = fileName,
+            url = url,
+            description = "Custom GGUF/GGML Model",
+            serverKey = fileName
+        )
+    }
+
     fun getModelInfoByFileName(fileName: String): ModelInfo {
-        return AVAILABLE_MODELS.find { it.fileName == fileName } ?: MODEL_LARGE_V3_TURBO
+        return AVAILABLE_MODELS.find { it.fileName == fileName } ?: buildCustomModelInfo(fileName)
     }
 
     suspend fun downloadModel(
