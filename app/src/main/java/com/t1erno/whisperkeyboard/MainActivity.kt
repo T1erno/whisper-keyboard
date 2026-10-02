@@ -45,6 +45,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 @SuppressLint("SetTextI18n")
 class MainActivity : AppCompatActivity() {
@@ -253,7 +254,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnSelectKeyboard.setOnClickListener {
-            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showInputMethodPicker()
         }
     }
@@ -300,7 +301,7 @@ class MainActivity : AppCompatActivity() {
     private fun fetchRemoteServerModels() {
         if (PreferencesManager.getEngineMode(this) != PreferencesManager.EngineMode.REMOTE_SERVER) return
         lifecycleScope.launch {
-            val result = WhisperApiClient.fetchServerModels(this@MainActivity)
+            WhisperApiClient.fetchServerModels(this@MainActivity)
             updateRemoteModelStatusUI()
         }
     }
@@ -842,9 +843,9 @@ class MainActivity : AppCompatActivity() {
         pingJob = lifecycleScope.launch {
             while (isActive) {
                 val inputUrl = etServerUrl.text.toString().trim()
-                val targetUrl = if (inputUrl.isNotEmpty()) inputUrl else PreferencesManager.getServerUrl(this@MainActivity)
+                val targetUrl = inputUrl.ifEmpty { PreferencesManager.getServerUrl(this@MainActivity) }
                 runTcpPing(targetUrl)
-                delay(2000L)
+                delay(2.seconds)
             }
         }
     }
@@ -889,7 +890,7 @@ class MainActivity : AppCompatActivity() {
             btnGrantPermission.backgroundTintList = ColorStateList.valueOf(purpleColor)
         }
 
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         val isKeyboardEnabled = imm.enabledInputMethodList.any {
             it.packageName == packageName
         }
