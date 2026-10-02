@@ -797,7 +797,7 @@ class MainActivity : AppCompatActivity() {
                 max = 100
                 progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.accent_purple))
                 progressBackgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, R.color.key_bg))
-                setProgress(prog)
+                progress = prog
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
