@@ -55,9 +55,14 @@ class MainActivity : AppCompatActivity() {
 
     // Remote Server Models Card Views
     private lateinit var cardRemoteModels: MaterialCardView
-    private lateinit var btnRefreshRemoteModels: MaterialButton
     private lateinit var tvRemoteModelStatus: TextView
     private lateinit var rgRemoteModels: RadioGroup
+    private lateinit var rbRemoteLargeV3: RadioButton
+    private lateinit var rbRemoteLargeTurbo: RadioButton
+    private lateinit var rbRemoteMedium: RadioButton
+    private lateinit var rbRemoteSmall: RadioButton
+    private lateinit var rbRemoteBase: RadioButton
+    private lateinit var rbRemoteTiny: RadioButton
     private lateinit var rbRemoteCustom: RadioButton
     private lateinit var layoutCustomModelInput: LinearLayout
     private lateinit var etCustomRemoteModel: EditText
@@ -112,9 +117,14 @@ class MainActivity : AppCompatActivity() {
 
         // Remote Models Card
         cardRemoteModels = findViewById(R.id.card_remote_models)
-        btnRefreshRemoteModels = findViewById(R.id.btn_refresh_remote_models)
         tvRemoteModelStatus = findViewById(R.id.tv_remote_model_status)
         rgRemoteModels = findViewById(R.id.rg_remote_models)
+        rbRemoteLargeV3 = findViewById(R.id.rb_remote_large_v3)
+        rbRemoteLargeTurbo = findViewById(R.id.rb_remote_large_turbo)
+        rbRemoteMedium = findViewById(R.id.rb_remote_medium)
+        rbRemoteSmall = findViewById(R.id.rb_remote_small)
+        rbRemoteBase = findViewById(R.id.rb_remote_base)
+        rbRemoteTiny = findViewById(R.id.rb_remote_tiny)
         rbRemoteCustom = findViewById(R.id.rb_remote_custom)
         layoutCustomModelInput = findViewById(R.id.layout_custom_model_input)
         etCustomRemoteModel = findViewById(R.id.et_custom_remote_model)
@@ -236,18 +246,8 @@ class MainActivity : AppCompatActivity() {
     private fun fetchRemoteServerModels() {
         if (PreferencesManager.getEngineMode(this) != PreferencesManager.EngineMode.REMOTE_SERVER) return
         lifecycleScope.launch {
-            tvRemoteModelStatus.text = "Querying server models..."
             val result = WhisperApiClient.fetchServerModels(this@MainActivity)
-            result.fold(
-                onSuccess = { modelsResponse ->
-                    populateRemoteModelsUI(modelsResponse)
-                },
-                onFailure = { error ->
-                    populateRemoteModelsUI(WhisperApiClient.lastServerModelsResponse)
-                    tvRemoteModelStatus.text = "Server offline: ${error.message ?: "Failed to reach server"}"
-                    tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-                }
-            )
+            updateRemoteModelStatusUI()
         }
     }
 
@@ -301,24 +301,51 @@ class MainActivity : AppCompatActivity() {
             // Decouple UI: Show Remote Server Model Selection
             cardRemoteModels.visibility = View.VISIBLE
             cardOfflineModels.visibility = View.GONE
+            updateRemoteModelStatusUI()
             startPeriodicTcpPing()
             fetchRemoteServerModels()
         }
     }
 
     private fun setupRemoteModelSelectionUI() {
-        btnRefreshRemoteModels.setOnClickListener {
-            VibrationHelper.vibrateKey(this, 20L)
-            fetchRemoteServerModels()
+        val currentRemote = PreferencesManager.getRemoteModel(this)
+        val isCustom = PreferencesManager.isCustomRemoteModel(this)
+
+        if (isCustom) {
+            rbRemoteCustom.isChecked = true
+            layoutCustomModelInput.visibility = View.VISIBLE
+            rgRemoteModels.clearCheck()
+        } else {
+            rbRemoteCustom.isChecked = false
+            layoutCustomModelInput.visibility = View.GONE
+            when (currentRemote) {
+                "large-v3" -> rbRemoteLargeV3.isChecked = true
+                "medium" -> rbRemoteMedium.isChecked = true
+                "small" -> rbRemoteSmall.isChecked = true
+                "base" -> rbRemoteBase.isChecked = true
+                "tiny" -> rbRemoteTiny.isChecked = true
+                else -> rbRemoteLargeTurbo.isChecked = true
+            }
         }
 
-        etCustomRemoteModel.setText(PreferencesManager.getCustomRemoteModel(this))
-        etCustomRemoteModel.doAfterTextChanged { text ->
-            val custom = text?.toString()?.trim() ?: ""
-            PreferencesManager.setCustomRemoteModel(this, custom)
-            if (rbRemoteCustom.isChecked) {
-                PreferencesManager.setIsCustomRemoteModel(this, true)
-                updateRemoteModelStatusText()
+        rgRemoteModels.setOnCheckedChangeListener { _, checkedId ->
+            if (checkedId != -1) {
+                rbRemoteCustom.isChecked = false
+                layoutCustomModelInput.visibility = View.GONE
+                PreferencesManager.setIsCustomRemoteModel(this, false)
+
+                val selectedKey = when (checkedId) {
+                    R.id.rb_remote_large_v3 -> "large-v3"
+                    R.id.rb_remote_medium -> "medium"
+                    R.id.rb_remote_small -> "small"
+                    R.id.rb_remote_base -> "base"
+                    R.id.rb_remote_tiny -> "tiny"
+                    else -> "large-v3-turbo"
+                }
+
+                PreferencesManager.setRemoteModel(this, selectedKey)
+                VibrationHelper.vibrateKey(this, 20L)
+                updateRemoteModelStatusUI()
             }
         }
 
@@ -328,29 +355,44 @@ class MainActivity : AppCompatActivity() {
             layoutCustomModelInput.visibility = View.VISIBLE
             PreferencesManager.setIsCustomRemoteModel(this, true)
             VibrationHelper.vibrateKey(this, 20L)
-            updateRemoteModelStatusText()
+            updateRemoteModelStatusUI()
         }
 
-        rgRemoteModels.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId != -1) {
-                val selectedRb = rgRemoteModels.findViewById<RadioButton>(checkedId)
-                val modelKey = selectedRb?.tag as? String
-                if (!modelKey.isNullOrEmpty()) {
-                    rbRemoteCustom.isChecked = false
-                    layoutCustomModelInput.visibility = View.GONE
-                    PreferencesManager.setIsCustomRemoteModel(this, false)
-                    PreferencesManager.setRemoteModel(this, modelKey)
-                    VibrationHelper.vibrateKey(this, 20L)
-                    updateRemoteModelStatusText()
-                }
+        etCustomRemoteModel.setText(PreferencesManager.getCustomRemoteModel(this))
+        etCustomRemoteModel.doAfterTextChanged { text ->
+            val custom = text?.toString()?.trim() ?: ""
+            PreferencesManager.setCustomRemoteModel(this, custom)
+            if (rbRemoteCustom.isChecked) {
+                PreferencesManager.setIsCustomRemoteModel(this, true)
+                updateRemoteModelStatusUI()
             }
         }
 
-        populateRemoteModelsUI(WhisperApiClient.lastServerModelsResponse)
+        updateRemoteModelStatusUI()
     }
 
-    private fun updateRemoteModelStatusText() {
-        if (PreferencesManager.isCustomRemoteModel(this)) {
+    private fun updateRemoteModelStatusUI() {
+        val currentRemote = PreferencesManager.getRemoteModel(this)
+        val isCustom = PreferencesManager.isCustomRemoteModel(this)
+        val modelsResponse = WhisperApiClient.lastServerModelsResponse
+
+        val remoteModelsMap = listOf(
+            rbRemoteLargeV3 to ("large-v3" to "Large v3 • Maximum precision"),
+            rbRemoteLargeTurbo to ("large-v3-turbo" to "Large v3 Turbo • Recommended • Fast & High Precision"),
+            rbRemoteMedium to ("medium" to "Medium • High accuracy"),
+            rbRemoteSmall to ("small" to "Small • Balanced speed & memory"),
+            rbRemoteBase to ("base" to "Base • Lightweight"),
+            rbRemoteTiny to ("tiny" to "Tiny • Fastest, low memory")
+        )
+
+        for ((rb, pair) in remoteModelsMap) {
+            val (key, baseText) = pair
+            val isLoaded = modelsResponse?.loadedModels?.any { it.equals(key, ignoreCase = true) } == true
+            val statusTag = if (isLoaded) " • [Ready on Server]" else ""
+            rb.text = "$baseText$statusTag"
+        }
+
+        if (isCustom) {
             val custom = PreferencesManager.getCustomRemoteModel(this)
             tvRemoteModelStatus.text = if (custom.isNotBlank()) {
                 "Active Remote Model: $custom"
@@ -359,79 +401,35 @@ class MainActivity : AppCompatActivity() {
             }
             tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
         } else {
-            val current = PreferencesManager.getRemoteModel(this)
-            val isLoaded = WhisperApiClient.isModelLoadedOnServer(current)
-            if (isLoaded) {
-                tvRemoteModelStatus.text = "✓ Server Ready: $current [Cached in VRAM]"
-                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-            } else {
-                tvRemoteModelStatus.text = "Selected Remote Model: $current"
-                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            val displayName = when (currentRemote) {
+                "large-v3" -> "Large v3"
+                "medium" -> "Medium"
+                "small" -> "Small"
+                "base" -> "Base"
+                "tiny" -> "Tiny"
+                else -> "Large v3 Turbo"
             }
-        }
-    }
 
-    private fun populateRemoteModelsUI(modelsResponse: ServerModelsResponse?) {
-        rgRemoteModels.removeAllViews()
-
-        val modelsList = if (modelsResponse != null && modelsResponse.availableModels.isNotEmpty()) {
-            modelsResponse.availableModels
-        } else {
-            listOf("tiny", "base", "small", "medium", "large-v3", "large-v3-turbo")
-        }
-
-        val loadedList = modelsResponse?.loadedModels ?: emptyList()
-        val isCustom = PreferencesManager.isCustomRemoteModel(this)
-        val currentSelected = PreferencesManager.getRemoteModel(this)
-
-        var checkedAny = false
-        for (modelKey in modelsList) {
-            val rb = RadioButton(this).apply {
-                id = View.generateViewId()
-                tag = modelKey
-                val isLoaded = loadedList.any { it.equals(modelKey, ignoreCase = true) }
-                text = if (isLoaded) {
-                    "$modelKey • [Ready in VRAM]"
+            if (modelsResponse != null) {
+                val isLoaded = modelsResponse.loadedModels.any { it.equals(currentRemote, ignoreCase = true) }
+                if (isLoaded) {
+                    tvRemoteModelStatus.text = "✓ Server Ready: $displayName (Cached in VRAM)"
+                    tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
                 } else {
-                    modelKey
+                    val isAvailable = modelsResponse.availableModels.any { it.equals(currentRemote, ignoreCase = true) }
+                    if (isAvailable) {
+                        tvRemoteModelStatus.text = "Remote Model Selected: $displayName"
+                        tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+                    } else {
+                        tvRemoteModelStatus.text = "⚠️ Model not loaded on server: $displayName"
+                        tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                    }
                 }
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
-                textSize = 13f
-                setPadding(0, 4, 0, 4)
-            }
-
-            rgRemoteModels.addView(rb)
-
-            if (!isCustom && currentSelected.equals(modelKey, ignoreCase = true)) {
-                rb.isChecked = true
-                checkedAny = true
+            } else {
+                tvRemoteModelStatus.text = "Model: $displayName (Server offline / checking...)"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             }
         }
-
-        if (isCustom) {
-            rbRemoteCustom.isChecked = true
-            layoutCustomModelInput.visibility = View.VISIBLE
-            rgRemoteModels.clearCheck()
-        } else {
-            rbRemoteCustom.isChecked = false
-            layoutCustomModelInput.visibility = View.GONE
-            if (!checkedAny && rgRemoteModels.childCount > 0) {
-                val firstRb = rgRemoteModels.getChildAt(0) as? RadioButton
-                firstRb?.isChecked = true
-                val key = firstRb?.tag as? String ?: modelsList.first()
-                PreferencesManager.setRemoteModel(this, key)
-            }
-        }
-
-        if (modelsResponse != null && modelsResponse.availableModels.isNotEmpty()) {
-            tvRemoteModelStatus.text = "Connected: ${modelsResponse.availableModels.size} models available • ${modelsResponse.loadedModels.size} ready in VRAM"
-            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-        } else {
-            tvRemoteModelStatus.text = "Connect to server to load available models (using fallback presets)"
-            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-        }
-
-        updateRemoteModelStatusText()
     }
 
     private fun setupOfflineModelSelectionUI() {

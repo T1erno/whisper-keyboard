@@ -195,53 +195,20 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_toStartOf="@id/btn_refresh_remote_models"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="Remote Server Model Selection"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:fontFamily="sans-serif"
-                            android:text="Executed on server • 0 MB downloaded on phone"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_refresh_remote_models"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:text="Refresh"
-                        android:textColor="@color/accent_purple"
-                        android:textSize="12sp" />
-                </RelativeLayout>
-
                 <TextView
-                    android:id="@+id/tv_remote_model_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Remote Server Model Selection"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
                     android:fontFamily="sans-serif"
-                    android:text="Querying server models..."
+                    android:text="Executed on server • 0 MB downloaded on phone"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
@@ -251,7 +218,56 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:orientation="vertical" />
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_large_v3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Large v3 • Maximum precision"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_large_turbo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Large v3 Turbo • Recommended • Fast &amp; High Precision"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_medium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Medium • High accuracy"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_small"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Small • Balanced speed &amp; memory"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_base"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Base • Lightweight"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_tiny"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Tiny • Fastest, low memory"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+                </RadioGroup>
 
                 <!-- Custom Hugging Face / Remote Model Option Container -->
                 <LinearLayout
@@ -264,7 +280,7 @@
                         android:id="@+id/rb_remote_custom"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Custom / Hugging Face Model"
+                        android:text="Custom / Other Model • Hugging Face repo ID"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
@@ -300,6 +316,16 @@
                             android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_remote_model_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Model status: Checking server..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
