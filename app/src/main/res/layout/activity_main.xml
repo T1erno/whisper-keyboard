@@ -134,32 +134,41 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <EditText
-                        android:id="@+id/et_server_url"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_punct_key"
-                        android:hint="https://whisper.t1erno.com/"
-                        android:importantForAutofill="no"
-                        android:inputType="textUri"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
                         android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:textColor="@color/text_primary"
-                        android:textColorHint="@color/text_secondary"
-                        android:textSize="14sp" />
+                        android:paddingEnd="6dp"
+                        tools:ignore="NestedWeights">
 
-                    <ImageButton
-                        android:id="@+id/btn_server_url_history"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginStart="8dp"
-                        android:background="@drawable/bg_punct_key"
-                        android:contentDescription="Server URL History"
-                        android:padding="12dp"
-                        android:scaleType="centerInside"
-                        android:src="@drawable/ic_history"
-                        app:tint="@color/text_secondary" />
+                        <EditText
+                            android:id="@+id/et_server_url"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="@null"
+                            android:hint="https://whisper.t1erno.com/"
+                            android:importantForAutofill="no"
+                            android:inputType="textUri"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <ImageButton
+                            android:id="@+id/btn_server_url_history"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Server URL History"
+                            android:padding="8dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_history"
+                            app:tint="@color/text_secondary" />
+                    </LinearLayout>
 
                     <View
                         android:id="@+id/v_status_dot"
@@ -292,37 +301,37 @@
                     <LinearLayout
                         android:id="@+id/layout_custom_model_input"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="44dp"
                         android:layout_marginStart="28dp"
                         android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_punct_key"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="6dp"
                         android:visibility="gone">
 
                         <EditText
                             android:id="@+id/et_custom_remote_model"
                             android:layout_width="0dp"
-                            android:layout_height="44dp"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
-                            android:background="@drawable/bg_punct_key"
+                            android:background="@null"
                             android:hint="e.g. Systran/faster-whisper-small"
                             android:importantForAutofill="no"
                             android:inputType="textUri|textNoSuggestions"
-                            android:paddingStart="12dp"
-                            android:paddingEnd="12dp"
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <ImageButton
                             android:id="@+id/btn_custom_remote_model_history"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_punct_key"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Remote Model History"
-                            android:padding="10dp"
-                            android:scaleType="centerInside"
+                            android:padding="6dp"
+                            android:scaleType="fitCenter"
                             android:src="@drawable/ic_history"
                             app:tint="@color/text_secondary" />
                     </LinearLayout>
@@ -450,37 +459,37 @@
                     <LinearLayout
                         android:id="@+id/layout_custom_offline_model_input"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="44dp"
                         android:layout_marginStart="28dp"
                         android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_punct_key"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="6dp"
                         android:visibility="gone">
 
                         <EditText
                             android:id="@+id/et_custom_offline_model"
                             android:layout_width="0dp"
-                            android:layout_height="44dp"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
-                            android:background="@drawable/bg_punct_key"
+                            android:background="@null"
                             android:hint="e.g. ggerganov/whisper.cpp/ggml-medium.en.bin"
                             android:importantForAutofill="no"
                             android:inputType="textUri|textNoSuggestions"
-                            android:paddingStart="12dp"
-                            android:paddingEnd="12dp"
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="13sp" />
 
                         <ImageButton
                             android:id="@+id/btn_custom_offline_model_history"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_punct_key"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Offline Model History"
-                            android:padding="10dp"
-                            android:scaleType="centerInside"
+                            android:padding="6dp"
+                            android:scaleType="fitCenter"
                             android:src="@drawable/ic_history"
                             app:tint="@color/text_secondary" />
                     </LinearLayout>
