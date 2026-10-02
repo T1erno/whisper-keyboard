@@ -178,11 +178,139 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Active Speech Model Selection Card (Placed BELOW Server URL Box) -->
+        <!-- Dedicated Remote Server Model Selection Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_remote_models"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/card_bg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_toStartOf="@id/btn_refresh_remote_models"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="Remote Server Model Selection"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="sans-serif"
+                            android:text="Executed on server • 0 MB downloaded on phone"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_refresh_remote_models"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:text="Refresh"
+                        android:textColor="@color/accent_purple"
+                        android:textSize="12sp" />
+                </RelativeLayout>
+
+                <TextView
+                    android:id="@+id/tv_remote_model_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Querying server models..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <!-- Dynamic Server Models RadioGroup -->
+                <RadioGroup
+                    android:id="@+id/rg_remote_models"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical" />
+
+                <!-- Custom Hugging Face / Remote Model Option Container -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/rb_remote_custom"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Custom / Hugging Face Model"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_custom_model_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <EditText
+                            android:id="@+id/et_custom_remote_model"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_punct_key"
+                            android:hint="e.g. Systran/faster-whisper-small"
+                            android:inputType="textUri|textNoSuggestions"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="sans-serif"
+                            android:text="Passes custom repo or model key via ?model= query parameter"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Dedicated Offline Edge Model Selection Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_offline_models"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/card_bg"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
@@ -198,7 +326,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
-                    android:text="Speech-to-Text Model Selection"
+                    android:text="Offline Edge Model Selection"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp" />
 
@@ -207,68 +335,68 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:fontFamily="sans-serif"
-                    android:text="Used for both Remote Server requests &amp; Offline On-Device dictation"
+                    android:text="Runs 100% locally via whisper.cpp • No internet required"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
                 <RadioGroup
-                    android:id="@+id/rg_models"
+                    android:id="@+id/rg_offline_models"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:orientation="vertical">
 
                     <RadioButton
-                        android:id="@+id/rb_model_large_v3"
+                        android:id="@+id/rb_offline_large_v3"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Large v3 • Max Precision (1.08 GB)"
+                        android:text="Large v3 (q5_0) • 1.08 GB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <RadioButton
-                        android:id="@+id/rb_model_large_turbo"
+                        android:id="@+id/rb_offline_large_turbo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Large v3 Turbo • Recommended (547 MB)"
+                        android:text="Large v3 Turbo (q5_0) • 547 MB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <RadioButton
-                        android:id="@+id/rb_model_medium"
+                        android:id="@+id/rb_offline_medium"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Medium • High Accuracy (539 MB)"
+                        android:text="Medium (q5_0) • 539 MB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <RadioButton
-                        android:id="@+id/rb_model_small"
+                        android:id="@+id/rb_offline_small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Small • Balanced Speed (487 MB)"
+                        android:text="Small • 487 MB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <RadioButton
-                        android:id="@+id/rb_model_base"
+                        android:id="@+id/rb_offline_base"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Base • Lightweight (147 MB)"
+                        android:text="Base • 147 MB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <RadioButton
-                        android:id="@+id/rb_model_tiny"
+                        android:id="@+id/rb_offline_tiny"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Tiny • Ultra Fast (77 MB)"
+                        android:text="Tiny • 77 MB"
                         android:textColor="@color/text_primary"
                         android:textSize="13sp" />
                 </RadioGroup>
 
                 <TextView
-                    android:id="@+id/tv_model_status"
+                    android:id="@+id/tv_offline_model_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -292,6 +420,19 @@
                     android:backgroundTint="@color/accent_purple"
                     android:text="Download Model"
                     app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_delete_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="#2D1B2D"
+                    android:text="Delete Model File (Free Space)"
+                    android:textColor="#F87171"
+                    app:cornerRadius="12dp"
+                    app:strokeColor="#EF4444"
+                    app:strokeWidth="1dp"
+                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

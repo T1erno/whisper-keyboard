@@ -345,7 +345,11 @@ class VoiceInputMethodService : InputMethodService() {
         val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
         val mode = PreferencesManager.getEngineMode(this)
-        val modelLabel = if (mode == PreferencesManager.EngineMode.EDGE_ON_DEVICE) modelInfo.name else "Remote Server"
+        val modelLabel = if (mode == PreferencesManager.EngineMode.EDGE_ON_DEVICE) {
+            modelInfo.name
+        } else {
+            PreferencesManager.getRemoteModel(this)
+        }
 
         when (state) {
             is UiState.IDLE -> {

@@ -17,8 +17,12 @@ object PreferencesManager {
     private const val KEY_AUTO_SEND_SILENCE = "auto_send_silence"
     private const val KEY_ENGINE_MODE = "engine_mode"
     private const val KEY_SELECTED_MODEL = "selected_model_file"
+    private const val KEY_REMOTE_MODEL = "remote_model"
+    private const val KEY_CUSTOM_REMOTE_MODEL = "custom_remote_model"
+    private const val KEY_IS_CUSTOM_REMOTE_MODEL = "is_custom_remote_model"
 
     private const val DEFAULT_URL = "https://whisper.t1erno.com/"
+    private const val DEFAULT_REMOTE_MODEL = "large-v3-turbo"
 
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -67,6 +71,42 @@ object PreferencesManager {
 
     fun setEngineMode(context: Context, mode: EngineMode) {
         getPreferences(context).edit().putString(KEY_ENGINE_MODE, mode.name).apply()
+    }
+
+    fun getRemoteModel(context: Context): String {
+        if (isCustomRemoteModel(context)) {
+            val custom = getCustomRemoteModel(context)
+            if (custom.isNotBlank()) return custom.trim()
+        }
+        return getPreferences(context).getString(KEY_REMOTE_MODEL, DEFAULT_REMOTE_MODEL) ?: DEFAULT_REMOTE_MODEL
+    }
+
+    fun setRemoteModel(context: Context, model: String) {
+        getPreferences(context).edit().putString(KEY_REMOTE_MODEL, model.trim()).apply()
+    }
+
+    fun getCustomRemoteModel(context: Context): String {
+        return getPreferences(context).getString(KEY_CUSTOM_REMOTE_MODEL, "") ?: ""
+    }
+
+    fun setCustomRemoteModel(context: Context, customModel: String) {
+        getPreferences(context).edit().putString(KEY_CUSTOM_REMOTE_MODEL, customModel.trim()).apply()
+    }
+
+    fun isCustomRemoteModel(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_IS_CUSTOM_REMOTE_MODEL, false)
+    }
+
+    fun setIsCustomRemoteModel(context: Context, isCustom: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_IS_CUSTOM_REMOTE_MODEL, isCustom).apply()
+    }
+
+    fun getSelectedOfflineModel(context: Context): String {
+        return getSelectedModelFileName(context)
+    }
+
+    fun setSelectedOfflineModel(context: Context, fileName: String) {
+        setSelectedModelFileName(context, fileName)
     }
 
     fun getSelectedModelFileName(context: Context): String {

@@ -21,6 +21,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -29,6 +30,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.t1erno.whisperkeyboard.nativeengine.ModelManager
 import com.t1erno.whisperkeyboard.nativeengine.OnDeviceTranscriber
+import com.t1erno.whisperkeyboard.network.ServerModelsResponse
 import com.t1erno.whisperkeyboard.network.TcpPingHelper
 import com.t1erno.whisperkeyboard.network.TcpPingHelper.toHumanReadablePingError
 import com.t1erno.whisperkeyboard.network.WhisperApiClient
@@ -51,17 +53,28 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toggleEngineMode: MaterialButtonToggleGroup
     private lateinit var tvEngineModeDesc: TextView
 
-    private lateinit var rgModels: RadioGroup
-    private lateinit var rbModelLargeV3: RadioButton
-    private lateinit var rbModelLargeTurbo: RadioButton
-    private lateinit var rbModelMedium: RadioButton
-    private lateinit var rbModelSmall: RadioButton
-    private lateinit var rbModelBase: RadioButton
-    private lateinit var rbModelTiny: RadioButton
+    // Remote Server Models Card Views
+    private lateinit var cardRemoteModels: MaterialCardView
+    private lateinit var btnRefreshRemoteModels: MaterialButton
+    private lateinit var tvRemoteModelStatus: TextView
+    private lateinit var rgRemoteModels: RadioGroup
+    private lateinit var rbRemoteCustom: RadioButton
+    private lateinit var layoutCustomModelInput: LinearLayout
+    private lateinit var etCustomRemoteModel: EditText
 
-    private lateinit var tvModelStatus: TextView
+    // Offline Edge Models Card Views
+    private lateinit var cardOfflineModels: MaterialCardView
+    private lateinit var rgOfflineModels: RadioGroup
+    private lateinit var rbOfflineLargeV3: RadioButton
+    private lateinit var rbOfflineLargeTurbo: RadioButton
+    private lateinit var rbOfflineMedium: RadioButton
+    private lateinit var rbOfflineSmall: RadioButton
+    private lateinit var rbOfflineBase: RadioButton
+    private lateinit var rbOfflineTiny: RadioButton
+    private lateinit var tvOfflineModelStatus: TextView
     private lateinit var layoutActiveDownloads: LinearLayout
     private lateinit var btnDownloadModel: MaterialButton
+    private lateinit var btnDeleteModel: MaterialButton
 
     private lateinit var tvStep1Status: TextView
     private lateinit var btnGrantPermission: Button
@@ -97,17 +110,28 @@ class MainActivity : AppCompatActivity() {
         toggleEngineMode = findViewById(R.id.toggle_engine_mode)
         tvEngineModeDesc = findViewById(R.id.tv_engine_mode_desc)
 
-        rgModels = findViewById(R.id.rg_models)
-        rbModelLargeV3 = findViewById(R.id.rb_model_large_v3)
-        rbModelLargeTurbo = findViewById(R.id.rb_model_large_turbo)
-        rbModelMedium = findViewById(R.id.rb_model_medium)
-        rbModelSmall = findViewById(R.id.rb_model_small)
-        rbModelBase = findViewById(R.id.rb_model_base)
-        rbModelTiny = findViewById(R.id.rb_model_tiny)
+        // Remote Models Card
+        cardRemoteModels = findViewById(R.id.card_remote_models)
+        btnRefreshRemoteModels = findViewById(R.id.btn_refresh_remote_models)
+        tvRemoteModelStatus = findViewById(R.id.tv_remote_model_status)
+        rgRemoteModels = findViewById(R.id.rg_remote_models)
+        rbRemoteCustom = findViewById(R.id.rb_remote_custom)
+        layoutCustomModelInput = findViewById(R.id.layout_custom_model_input)
+        etCustomRemoteModel = findViewById(R.id.et_custom_remote_model)
 
-        tvModelStatus = findViewById(R.id.tv_model_status)
+        // Offline Models Card
+        cardOfflineModels = findViewById(R.id.card_offline_models)
+        rgOfflineModels = findViewById(R.id.rg_offline_models)
+        rbOfflineLargeV3 = findViewById(R.id.rb_offline_large_v3)
+        rbOfflineLargeTurbo = findViewById(R.id.rb_offline_large_turbo)
+        rbOfflineMedium = findViewById(R.id.rb_offline_medium)
+        rbOfflineSmall = findViewById(R.id.rb_offline_small)
+        rbOfflineBase = findViewById(R.id.rb_offline_base)
+        rbOfflineTiny = findViewById(R.id.rb_offline_tiny)
+        tvOfflineModelStatus = findViewById(R.id.tv_offline_model_status)
         layoutActiveDownloads = findViewById(R.id.layout_active_downloads)
         btnDownloadModel = findViewById(R.id.btn_download_model)
+        btnDeleteModel = findViewById(R.id.btn_delete_model)
 
         tvStep1Status = findViewById(R.id.tv_step1_status)
         btnGrantPermission = findViewById(R.id.btn_grant_permission)
@@ -126,7 +150,8 @@ class MainActivity : AppCompatActivity() {
 
         handlePermissionIntent(intent)
         setupEngineModeUI()
-        setupModelSelectionUI()
+        setupRemoteModelSelectionUI()
+        setupOfflineModelSelectionUI()
 
         switchAutoSendSilence.isChecked = PreferencesManager.isAutoSendOnSilenceEnabled(this)
         switchAutoSendSilence.setOnCheckedChangeListener { _, isChecked ->
@@ -211,8 +236,18 @@ class MainActivity : AppCompatActivity() {
     private fun fetchRemoteServerModels() {
         if (PreferencesManager.getEngineMode(this) != PreferencesManager.EngineMode.REMOTE_SERVER) return
         lifecycleScope.launch {
-            WhisperApiClient.fetchServerModels(this@MainActivity)
-            updateModelStatusUI()
+            tvRemoteModelStatus.text = "Querying server models..."
+            val result = WhisperApiClient.fetchServerModels(this@MainActivity)
+            result.fold(
+                onSuccess = { modelsResponse ->
+                    populateRemoteModelsUI(modelsResponse)
+                },
+                onFailure = { error ->
+                    populateRemoteModelsUI(WhisperApiClient.lastServerModelsResponse)
+                    tvRemoteModelStatus.text = "Server offline: ${error.message ?: "Failed to reach server"}"
+                    tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+                }
+            )
         }
     }
 
@@ -248,6 +283,11 @@ class MainActivity : AppCompatActivity() {
             etServerUrl.isEnabled = false
             btnSaveUrl.isEnabled = false
             cardRemoteSettings.alpha = 0.5f
+
+            // Decouple UI: Show Offline Edge Model Selection
+            cardRemoteModels.visibility = View.GONE
+            cardOfflineModels.visibility = View.VISIBLE
+            updateOfflineModelStatusUI()
             startPeriodicTcpPing()
         } else {
             tvEngineModeDesc.text = "Transcribes online via your self-hosted Whisper API server"
@@ -257,101 +297,238 @@ class MainActivity : AppCompatActivity() {
             etServerUrl.isEnabled = true
             btnSaveUrl.isEnabled = true
             cardRemoteSettings.alpha = 1.0f
+
+            // Decouple UI: Show Remote Server Model Selection
+            cardRemoteModels.visibility = View.VISIBLE
+            cardOfflineModels.visibility = View.GONE
             startPeriodicTcpPing()
             fetchRemoteServerModels()
         }
-        updateModelStatusUI()
     }
 
-    private fun setupModelSelectionUI() {
-        val currentModel = PreferencesManager.getSelectedModelFileName(this)
-        when (currentModel) {
-            ModelManager.MODEL_LARGE_V3.fileName -> rbModelLargeV3.isChecked = true
-            ModelManager.MODEL_MEDIUM.fileName -> rbModelMedium.isChecked = true
-            ModelManager.MODEL_SMALL.fileName -> rbModelSmall.isChecked = true
-            ModelManager.MODEL_BASE.fileName -> rbModelBase.isChecked = true
-            ModelManager.MODEL_TINY.fileName -> rbModelTiny.isChecked = true
-            else -> rbModelLargeTurbo.isChecked = true
+    private fun setupRemoteModelSelectionUI() {
+        btnRefreshRemoteModels.setOnClickListener {
+            VibrationHelper.vibrateKey(this, 20L)
+            fetchRemoteServerModels()
         }
 
-        rgModels.setOnCheckedChangeListener { _, checkedId ->
+        etCustomRemoteModel.setText(PreferencesManager.getCustomRemoteModel(this))
+        etCustomRemoteModel.doAfterTextChanged { text ->
+            val custom = text?.toString()?.trim() ?: ""
+            PreferencesManager.setCustomRemoteModel(this, custom)
+            if (rbRemoteCustom.isChecked) {
+                PreferencesManager.setIsCustomRemoteModel(this, true)
+                updateRemoteModelStatusText()
+            }
+        }
+
+        rbRemoteCustom.setOnClickListener {
+            rgRemoteModels.clearCheck()
+            rbRemoteCustom.isChecked = true
+            layoutCustomModelInput.visibility = View.VISIBLE
+            PreferencesManager.setIsCustomRemoteModel(this, true)
+            VibrationHelper.vibrateKey(this, 20L)
+            updateRemoteModelStatusText()
+        }
+
+        rgRemoteModels.setOnCheckedChangeListener { _, checkedId ->
+            if (checkedId != -1) {
+                val selectedRb = rgRemoteModels.findViewById<RadioButton>(checkedId)
+                val modelKey = selectedRb?.tag as? String
+                if (!modelKey.isNullOrEmpty()) {
+                    rbRemoteCustom.isChecked = false
+                    layoutCustomModelInput.visibility = View.GONE
+                    PreferencesManager.setIsCustomRemoteModel(this, false)
+                    PreferencesManager.setRemoteModel(this, modelKey)
+                    VibrationHelper.vibrateKey(this, 20L)
+                    updateRemoteModelStatusText()
+                }
+            }
+        }
+
+        populateRemoteModelsUI(WhisperApiClient.lastServerModelsResponse)
+    }
+
+    private fun updateRemoteModelStatusText() {
+        if (PreferencesManager.isCustomRemoteModel(this)) {
+            val custom = PreferencesManager.getCustomRemoteModel(this)
+            tvRemoteModelStatus.text = if (custom.isNotBlank()) {
+                "Active Remote Model: $custom"
+            } else {
+                "Enter custom model repository / identifier above"
+            }
+            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+        } else {
+            val current = PreferencesManager.getRemoteModel(this)
+            val isLoaded = WhisperApiClient.isModelLoadedOnServer(current)
+            if (isLoaded) {
+                tvRemoteModelStatus.text = "✓ Server Ready: $current [Cached in VRAM]"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+            } else {
+                tvRemoteModelStatus.text = "Selected Remote Model: $current"
+                tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            }
+        }
+    }
+
+    private fun populateRemoteModelsUI(modelsResponse: ServerModelsResponse?) {
+        rgRemoteModels.removeAllViews()
+
+        val modelsList = if (modelsResponse != null && modelsResponse.availableModels.isNotEmpty()) {
+            modelsResponse.availableModels
+        } else {
+            listOf("tiny", "base", "small", "medium", "large-v3", "large-v3-turbo")
+        }
+
+        val loadedList = modelsResponse?.loadedModels ?: emptyList()
+        val isCustom = PreferencesManager.isCustomRemoteModel(this)
+        val currentSelected = PreferencesManager.getRemoteModel(this)
+
+        var checkedAny = false
+        for (modelKey in modelsList) {
+            val rb = RadioButton(this).apply {
+                id = View.generateViewId()
+                tag = modelKey
+                val isLoaded = loadedList.any { it.equals(modelKey, ignoreCase = true) }
+                text = if (isLoaded) {
+                    "$modelKey • [Ready in VRAM]"
+                } else {
+                    modelKey
+                }
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+                textSize = 13f
+                setPadding(0, 4, 0, 4)
+            }
+
+            rgRemoteModels.addView(rb)
+
+            if (!isCustom && currentSelected.equals(modelKey, ignoreCase = true)) {
+                rb.isChecked = true
+                checkedAny = true
+            }
+        }
+
+        if (isCustom) {
+            rbRemoteCustom.isChecked = true
+            layoutCustomModelInput.visibility = View.VISIBLE
+            rgRemoteModels.clearCheck()
+        } else {
+            rbRemoteCustom.isChecked = false
+            layoutCustomModelInput.visibility = View.GONE
+            if (!checkedAny && rgRemoteModels.childCount > 0) {
+                val firstRb = rgRemoteModels.getChildAt(0) as? RadioButton
+                firstRb?.isChecked = true
+                val key = firstRb?.tag as? String ?: modelsList.first()
+                PreferencesManager.setRemoteModel(this, key)
+            }
+        }
+
+        if (modelsResponse != null && modelsResponse.availableModels.isNotEmpty()) {
+            tvRemoteModelStatus.text = "Connected: ${modelsResponse.availableModels.size} models available • ${modelsResponse.loadedModels.size} ready in VRAM"
+            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
+        } else {
+            tvRemoteModelStatus.text = "Connect to server to load available models (using fallback presets)"
+            tvRemoteModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        }
+
+        updateRemoteModelStatusText()
+    }
+
+    private fun setupOfflineModelSelectionUI() {
+        val currentModel = PreferencesManager.getSelectedOfflineModel(this)
+        when (currentModel) {
+            ModelManager.MODEL_LARGE_V3.fileName -> rbOfflineLargeV3.isChecked = true
+            ModelManager.MODEL_MEDIUM.fileName -> rbOfflineMedium.isChecked = true
+            ModelManager.MODEL_SMALL.fileName -> rbOfflineSmall.isChecked = true
+            ModelManager.MODEL_BASE.fileName -> rbOfflineBase.isChecked = true
+            ModelManager.MODEL_TINY.fileName -> rbOfflineTiny.isChecked = true
+            else -> rbOfflineLargeTurbo.isChecked = true
+        }
+
+        rgOfflineModels.setOnCheckedChangeListener { _, checkedId ->
             val selectedModel = when (checkedId) {
-                R.id.rb_model_large_v3 -> ModelManager.MODEL_LARGE_V3
-                R.id.rb_model_medium -> ModelManager.MODEL_MEDIUM
-                R.id.rb_model_small -> ModelManager.MODEL_SMALL
-                R.id.rb_model_base -> ModelManager.MODEL_BASE
-                R.id.rb_model_tiny -> ModelManager.MODEL_TINY
+                R.id.rb_offline_large_v3 -> ModelManager.MODEL_LARGE_V3
+                R.id.rb_offline_medium -> ModelManager.MODEL_MEDIUM
+                R.id.rb_offline_small -> ModelManager.MODEL_SMALL
+                R.id.rb_offline_base -> ModelManager.MODEL_BASE
+                R.id.rb_offline_tiny -> ModelManager.MODEL_TINY
                 else -> ModelManager.MODEL_LARGE_V3_TURBO
             }
 
-            PreferencesManager.setSelectedModelFileName(this, selectedModel.fileName)
+            PreferencesManager.setSelectedOfflineModel(this, selectedModel.fileName)
             OnDeviceTranscriber.releaseContext()
-            fetchRemoteServerModels()
-            updateModelStatusUI()
+            VibrationHelper.vibrateKey(this, 20L)
+            updateOfflineModelStatusUI()
         }
 
         btnDownloadModel.setOnClickListener {
             startModelDownload()
         }
+
+        btnDeleteModel.setOnClickListener {
+            val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
+            val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
+            val sizeFormatted = ModelManager.getDownloadedModelSizeFormatted(this, selectedFileName)
+
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Delete ${modelInfo.name}?")
+                .setMessage("Delete local model file ($sizeFormatted) to free storage space on your phone?")
+                .setPositiveButton("Delete") { _, _ ->
+                    ModelManager.deleteModel(this, selectedFileName)
+                    OnDeviceTranscriber.releaseContext()
+                    Toast.makeText(this, "${modelInfo.name} deleted to free space", Toast.LENGTH_SHORT).show()
+                    updateOfflineModelStatusUI()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
+        updateOfflineModelStatusUI()
     }
 
-    private fun updateModelStatusUI() {
-        val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
+    private fun updateOfflineModelStatusUI() {
+        val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
         val isDownloaded = ModelManager.isModelDownloaded(this, selectedFileName)
         val isDownloading = ModelManager.isModelDownloading(selectedFileName)
         val progress = ModelManager.getDownloadProgress(selectedFileName)
-        val currentEngineMode = PreferencesManager.getEngineMode(this)
 
         val modelsMap = listOf(
-            rbModelLargeV3 to ModelManager.MODEL_LARGE_V3,
-            rbModelLargeTurbo to ModelManager.MODEL_LARGE_V3_TURBO,
-            rbModelMedium to ModelManager.MODEL_MEDIUM,
-            rbModelSmall to ModelManager.MODEL_SMALL,
-            rbModelBase to ModelManager.MODEL_BASE,
-            rbModelTiny to ModelManager.MODEL_TINY
+            rbOfflineLargeV3 to ModelManager.MODEL_LARGE_V3,
+            rbOfflineLargeTurbo to ModelManager.MODEL_LARGE_V3_TURBO,
+            rbOfflineMedium to ModelManager.MODEL_MEDIUM,
+            rbOfflineSmall to ModelManager.MODEL_SMALL,
+            rbOfflineBase to ModelManager.MODEL_BASE,
+            rbOfflineTiny to ModelManager.MODEL_TINY
         )
 
         for ((rb, model) in modelsMap) {
-            rb.text = "${model.name} • ${model.description}"
+            val hasFile = ModelManager.isModelDownloaded(this, model.fileName)
+            val statusTag = if (hasFile) " • [Downloaded]" else ""
+            rb.text = "${model.name} • ${model.description}$statusTag"
         }
 
-        if (currentEngineMode == PreferencesManager.EngineMode.REMOTE_SERVER) {
-            val serverAvailability = WhisperApiClient.isModelAvailableOnServer(modelInfo.serverKey)
-            when (serverAvailability) {
-                true -> {
-                    tvModelStatus.text = "✓ Server Ready: ${modelInfo.name}"
-                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-                }
-                false -> {
-                    tvModelStatus.text = "⚠️ Model not loaded on server"
-                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-                }
-                null -> {
-                    tvModelStatus.text = "Checking server model status..."
-                    tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-                }
-            }
+        if (isDownloaded) {
+            val size = ModelManager.getDownloadedModelSizeFormatted(this, selectedFileName)
+            tvOfflineModelStatus.text = "✓ Offline model ready on device: ${modelInfo.name} ($size)"
+            tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
             btnDownloadModel.visibility = View.GONE
+            btnDeleteModel.visibility = View.VISIBLE
+            btnDeleteModel.text = "DELETE MODEL FILE ($size)"
+        } else if (isDownloading) {
+            tvOfflineModelStatus.text = "Downloading model for Offline Edge... ${progress ?: 0}%"
+            tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+            btnDownloadModel.visibility = View.VISIBLE
+            btnDownloadModel.isEnabled = false
+            btnDownloadModel.text = "DOWNLOADING ${modelInfo.name.uppercase()}..."
+            btnDeleteModel.visibility = View.GONE
         } else {
-            // Edge On-Device Mode
-            if (isDownloaded) {
-                tvModelStatus.text = "✓ Offline model ready: ${modelInfo.name}"
-                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_purple))
-                btnDownloadModel.visibility = View.GONE
-            } else if (isDownloading) {
-                tvModelStatus.text = "Downloading model for Offline Edge..."
-                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
-                btnDownloadModel.visibility = View.VISIBLE
-                btnDownloadModel.isEnabled = false
-                btnDownloadModel.text = "DOWNLOADING ${modelInfo.name.uppercase()}..."
-            } else {
-                tvModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
-                tvModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-                btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
-                btnDownloadModel.visibility = View.VISIBLE
-                btnDownloadModel.isEnabled = true
-            }
+            tvOfflineModelStatus.text = "Model missing for Offline Edge: ${modelInfo.name}. Tap download below."
+            tvOfflineModelStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            btnDownloadModel.text = "DOWNLOAD ${modelInfo.name.uppercase()}"
+            btnDownloadModel.visibility = View.VISIBLE
+            btnDownloadModel.isEnabled = true
+            btnDeleteModel.visibility = View.GONE
         }
 
         // Dynamically render a progress bar for each active download
@@ -383,12 +560,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startModelDownload() {
-        val selectedFileName = PreferencesManager.getSelectedModelFileName(this)
+        val selectedFileName = PreferencesManager.getSelectedOfflineModel(this)
         val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
 
         if (ModelManager.isModelDownloading(selectedFileName)) return
 
-        updateModelStatusUI()
+        updateOfflineModelStatusUI()
 
         lifecycleScope.launch {
             val result = ModelManager.downloadModel(
@@ -396,18 +573,18 @@ class MainActivity : AppCompatActivity() {
                 modelInfo = modelInfo
             ) { _ ->
                 lifecycleScope.launch {
-                    updateModelStatusUI()
+                    updateOfflineModelStatusUI()
                 }
             }
 
             result.fold(
                 onSuccess = { _ ->
                     Toast.makeText(this@MainActivity, "${modelInfo.name} downloaded successfully!", Toast.LENGTH_LONG).show()
-                    updateModelStatusUI()
+                    updateOfflineModelStatusUI()
                 },
                 onFailure = { error ->
                     Toast.makeText(this@MainActivity, "Download failed: ${error.message}", Toast.LENGTH_LONG).show()
-                    updateModelStatusUI()
+                    updateOfflineModelStatusUI()
                 }
             )
         }
@@ -417,8 +594,11 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         checkKeyboardStatus()
         startPeriodicTcpPing()
-        fetchRemoteServerModels()
-        updateModelStatusUI()
+        if (PreferencesManager.getEngineMode(this) == PreferencesManager.EngineMode.REMOTE_SERVER) {
+            fetchRemoteServerModels()
+        } else {
+            updateOfflineModelStatusUI()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

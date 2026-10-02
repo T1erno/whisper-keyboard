@@ -105,6 +105,27 @@ object ModelManager {
         return file.exists() && file.length() > 5000000L
     }
 
+    fun deleteModel(context: Context, fileName: String): Boolean {
+        val file = getModelFile(context, fileName)
+        return if (file.exists()) {
+            file.delete()
+        } else {
+            false
+        }
+    }
+
+    fun getDownloadedModelSizeFormatted(context: Context, fileName: String): String {
+        val file = getModelFile(context, fileName)
+        if (!file.exists()) return "0 MB"
+        val bytes = file.length()
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024.0) {
+            String.format(java.util.Locale.US, "%.2f GB", mb / 1024.0)
+        } else {
+            String.format(java.util.Locale.US, "%.0f MB", mb)
+        }
+    }
+
     fun getDownloadProgress(fileName: String): Int? {
         return activeDownloads[fileName]
     }

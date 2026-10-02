@@ -14,34 +14,83 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.util.concurrent.TimeUnit
 
+data class ServerModelsResponse(
+    val availableModels: List<String>,
+    val loadedModels: List<String>,
+    val defaultModel: String?
+)
+
 object WhisperApiClient {
 
     private var currentBaseUrl: String? = null
     private var cachedApiService: WhisperApiService? = null
-    private var serverModelsCache: Map<String, Boolean>? = null
+    var lastServerModelsResponse: ServerModelsResponse? = null
+        private set
 
     fun isModelAvailableOnServer(serverKey: String): Boolean? {
-        return serverModelsCache?.get(serverKey.lowercase())
+        val resp = lastServerModelsResponse ?: return null
+        return resp.availableModels.any { it.equals(serverKey.trim(), ignoreCase = true) }
     }
 
-    suspend fun fetchServerModels(context: Context): Result<Map<String, Boolean>> = withContext(Dispatchers.IO) {
+    fun isModelLoadedOnServer(serverKey: String): Boolean {
+        return lastServerModelsResponse?.loadedModels?.any { it.equals(serverKey.trim(), ignoreCase = true) } == true
+    }
+
+    suspend fun fetchServerModels(context: Context): Result<ServerModelsResponse> = withContext(Dispatchers.IO) {
         return@withContext try {
             val apiService = getApiService(context)
             val response = apiService.getModels()
             if (response.isSuccessful && response.body() != null) {
                 val rawJson = response.body()!!.string().trim()
-                val resultMap = mutableMapOf<String, Boolean>()
+                val available = mutableListOf<String>()
+                val loaded = mutableListOf<String>()
+                var defaultModel: String? = null
 
-                val jsonObj = org.json.JSONObject(rawJson)
-                val keys = jsonObj.keys()
-                while (keys.hasNext()) {
-                    val key = keys.next()
-                    val isAvailable = jsonObj.optBoolean(key, false)
-                    resultMap[key.lowercase()] = isAvailable
+                if (rawJson.startsWith("{")) {
+                    val jsonObj = org.json.JSONObject(rawJson)
+                    if (jsonObj.has("available_models")) {
+                        val availArray = jsonObj.optJSONArray("available_models")
+                        if (availArray != null) {
+                            for (i in 0 until availArray.length()) {
+                                val item = availArray.optString(i, "").trim()
+                                if (item.isNotEmpty() && !available.contains(item)) available.add(item)
+                            }
+                        }
+                        val loadedArray = jsonObj.optJSONArray("loaded_models")
+                        if (loadedArray != null) {
+                            for (i in 0 until loadedArray.length()) {
+                                val item = loadedArray.optString(i, "").trim()
+                                if (item.isNotEmpty() && !loaded.contains(item)) loaded.add(item)
+                            }
+                        }
+                        defaultModel = jsonObj.optString("default_model", "").takeIf { it.isNotEmpty() }
+                    } else {
+                        // Fallback: Map of modelKey -> boolean (true if loaded/ready)
+                        val keys = jsonObj.keys()
+                        while (keys.hasNext()) {
+                            val key = keys.next().trim()
+                            if (key.isNotEmpty()) {
+                                val isReady = jsonObj.optBoolean(key, false)
+                                if (!available.contains(key)) available.add(key)
+                                if (isReady && !loaded.contains(key)) loaded.add(key)
+                            }
+                        }
+                    }
+                } else if (rawJson.startsWith("[")) {
+                    val array = org.json.JSONArray(rawJson)
+                    for (i in 0 until array.length()) {
+                        val item = array.optString(i, "").trim()
+                        if (item.isNotEmpty() && !available.contains(item)) available.add(item)
+                    }
                 }
 
-                serverModelsCache = resultMap
-                Result.success(resultMap)
+                val modelsResponse = ServerModelsResponse(
+                    availableModels = available,
+                    loadedModels = loaded,
+                    defaultModel = defaultModel
+                )
+                lastServerModelsResponse = modelsResponse
+                Result.success(modelsResponse)
             } else {
                 Result.failure(Exception("HTTP ${response.code()}"))
             }
@@ -86,13 +135,11 @@ object WhisperApiClient {
             val requestFile = audioFile.asRequestBody("audio/m4a".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", audioFile.name, requestFile)
 
-            val selectedFileName = PreferencesManager.getSelectedModelFileName(context)
-            val modelInfo = ModelManager.getModelInfoByFileName(selectedFileName)
-            val serverModelKey = modelInfo.serverKey
+            val remoteModelKey = PreferencesManager.getRemoteModel(context)
 
             val response = apiService.transcribeAudio(
                 file = body,
-                model = serverModelKey,
+                model = remoteModelKey.ifEmpty { null },
                 language = language
             )
 
